@@ -1,0 +1,23 @@
+{
+    "version": 3,
+    "configurePresets": [
+        {
+            "name": "default",
+            "displayName": "Default",
+            "description": "Default build using 7800basic",
+            "generator": "Unix Makefiles",
+            "binaryDir": "${sourceDir}/build",
+            "cacheVariables": {
+                "BASIC7800_DIR": "/Users/jasonrowe/Software/7800basic"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "default",
+            "configurePreset": "default",
+            "displayName": "Default",
+            "description": "Default build"
+        }
+    ]
+}
