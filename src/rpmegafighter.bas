@@ -66,6 +66,18 @@
    dim eblife  = var68 ; 68, 69
    dim ecooldown = var70
    dim temp_w = var71
+   
+   ; Safety Buffer 72-79
+   
+   ; Starfield Variables (20 stars)
+   ; Moved to var80+ to prevent memory corruption from scratch vars
+   dim star_x = var80 ; 80-99
+   dim star_y = var100 ; 100-119
+   dim star_c = var120 ; 120-139
+   dim sc1 = var140
+   dim sc2 = var141
+   dim sc3 = var142
+   dim cycle_state = var143
 
    ; Enemy Variables (Single Enemy for now)
    dim ex = var40
@@ -73,7 +85,7 @@
    dim evx = var42
    dim evy = var43
    dim elife = var44
-   dim elife = var44
+   ; Removed duplicate elife
    dim rand_val = var45
    
    ; Asteroid Variables (Single Large Asteroid)
@@ -96,8 +108,9 @@
    ; Palette Setup
    P0C1=$26: P0C2=$24: P0C3=$04
    P1C1=$0E: P1C2=$38: P1C3=$FC ; Bullets (Yellow/White)
-   P2C1=$04: P2C2=$08: P2C3=$0C ; Asteroids (Greys)
+   P2C1=$94: P2C2=$98: P2C3=$9C ; Asteroids (Blue for debug distinction)
    P3C1=$B4: P3C2=$46: P3C3=$1C ; Enemy (Green, Red, Yellow)
+   P4C1=$08: P4C2=$0C: P4C3=$0F ; Stars (Dim Grey, Light Grey, White)
    P5C1=$34: P5C2=$86: P5C3=$0A ; Spaceship
    
    BACKGRND=$00 ; Set Background to Black
@@ -126,6 +139,8 @@
    alife = 0 ; Asteroid inactive
    ecooldown = 0
    eblife[0] = 0 : eblife[1] = 0
+   
+   gosub init_stars
 
 main_loop
    clearscreen
@@ -148,7 +163,10 @@ main_loop
 
    ; ---- Neutralize Forces ----
    gosub neutralize_forces
-
+   
+   ; ---- Starfield Update ----
+   gosub cycle_stars
+   
    ; ---- Physics Update ----
    ; Scaling factor 64 (6 bits fraction)
    
@@ -197,6 +215,8 @@ main_loop
    ; ---- Draw ----
    plotsprite sprite_spaceship1 5 px py shpfr
    
+   gosub draw_stars
+
    if blife0 > 0 then plotsprite bullet_conv 1 bul_x0 bul_y0
    if blife1 > 0 then plotsprite bullet_conv 1 bul_x1 bul_y1
    if blife2 > 0 then plotsprite bullet_conv 1 bul_x2 bul_y2
@@ -630,6 +650,59 @@ skip_ebul_coll
    next
 
 coll_done
+   return
+
+init_stars
+   for iter = 0 to 19
+      ; Random X (0-159)
+      rand_val = frame & 127 : temp_v = rand_val
+      rand_val = frame & 32 : temp_v = temp_v + rand_val
+      if temp_v > 159 then temp_v = 159
+      star_x[iter] = temp_v
+      
+      ; Random Y (0-190)
+      rand_val = frame & 127
+      rand_val = rand_val + 50 ; padding?
+      if rand_val > 180 then rand_val = rand_val - 100
+      star_y[iter] = rand_val
+      
+      ; Random Color (1-3)
+      rand_val = frame & 3
+      if rand_val = 0 then rand_val = 1
+      star_c[iter] = rand_val
+      
+      ; Advance frame to mix RNG
+      frame = frame + 1
+   next
+   return
+
+draw_stars
+   for iter = 0 to 19
+      ; Reuse bullet_conv sprite (2x2 pixel)
+      ; Use Palette 4
+      temp_v = star_x[iter]
+      temp_w = star_y[iter]
+      plotsprite bullet_conv 4 temp_v temp_w
+   next
+   return
+
+   dim sc1 = var140
+   dim sc2 = var141
+   dim sc3 = var142
+   dim cycle_state = var143 ; 0, 1, 2
+
+...
+
+cycle_stars
+   ; Twinkle every 8 frames
+   if (frame & 7) > 0 then return
+   
+   cycle_state = cycle_state + 1
+   if cycle_state > 2 then cycle_state = 0
+   
+   if cycle_state = 0 then P4C1=$08: P4C2=$0C: P4C3=$0F
+   if cycle_state = 1 then P4C1=$0C: P4C2=$0F: P4C3=$08
+   if cycle_state = 2 then P4C1=$0F: P4C2=$08: P4C3=$0C
    return
 
    ; ---- Data Tables (ROM) ----

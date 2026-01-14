@@ -69,6 +69,14 @@ sprite_spaceship2_width = $04
 sprite_spaceship1_mode = $00
 sprite_spaceship1_width_twoscompliment = $1c
 sprite_spaceship1_width = $04
+cycle_state = var143
+ 
+sc3 = var142
+ 
+sc2 = var141
+ 
+sc1 = var140
+ 
 blife3 = var37
  
 blife2 = var36 
@@ -98,8 +106,6 @@ rand_val = var45
  
 elife = var44
  
-elife = var44
- 
 evy = var43
  
 evx = var42
@@ -107,6 +113,20 @@ evx = var42
 ey = var41
  
 ex = var40
+ 
+cycle_state = var143
+ 
+sc3 = var142
+ 
+sc2 = var141
+ 
+sc1 = var140
+ 
+star_c = var120
+ 
+star_y = var100
+ 
+star_x = var80
  
 temp_w = var71
  
