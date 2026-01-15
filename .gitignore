@@ -2,12 +2,16 @@
 
 # Build artifacts
 build/
-*.o
+bin/
+output/
 *.a78
 *.bin
-*.lst
 *.asm
+*.lst
 *.sym
+*.list.txt
+*.symbol.txt
+*temp.bas
 
 # 7800basic temporary files
 7800.asm
@@ -19,6 +23,7 @@ CMakeFiles/
 cmake_install.cmake
 Makefile
 *.cmake
+CMakeUserPresets.json
 
 # IDE specific files
 .vscode/
@@ -26,6 +31,12 @@ Makefile
 *.swp
 *.swo
 *~
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
 
 # OS specific
 .DS_Store
@@ -36,9 +47,3 @@ desktop.ini
 *.bak
 *.tmp
 *~
-
-# Compiled outputs (keep source only)
-output/
-bin/
-
-.venv
