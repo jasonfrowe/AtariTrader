@@ -30,7 +30,6 @@
    incgraphic fighter_explode_05_conv.png
    incgraphic fighter_explode_06_conv.png
    incgraphic fighter_explode_07_conv.png
-   incgraphic asteroid_L_conv.png
    incgraphic asteroid_M_conv.png
    incgraphic tileset_blanks.png 160A 3 0 1 2
    incgraphic scoredigits_8_wide.png
@@ -585,14 +584,44 @@ update_enemy
        temp_acc = px + 8 ; Center
        temp_acc = temp_acc - temp_v
        if temp_acc = 0 then goto skip_ex_move
-       if temp_acc >= 128 then temp_v = temp_v - 1 else temp_v = temp_v + 1
-skip_ex_move
+       if temp_acc >= 128 then goto move_left_ex
+       
+       ; Move Right
+       temp_v = temp_v + 1
+       if temp_v = 0 then ex_hi[iter] = ex_hi[iter] + 1 ; Wrap Up
+       goto ex_move_done
 
-       ; Wrap Safe Chase Logic (Y)
+move_left_ex
+       temp_v = temp_v - 1
+       if temp_v = 255 then ex_hi[iter] = ex_hi[iter] - 1 ; Wrap Down
+
+skip_ex_move
+ex_move_done
+       ; Wrap World X
+       if ex_hi[iter] >= 4 then ex_hi[iter] = 0
+       if ex_hi[iter] = 255 then ex_hi[iter] = 3
+
+       ; Wrap Safe Chase Logic (Y) with wave pattern
        temp_acc = py + 8 ; Center
        temp_acc = temp_acc - temp_w
-       if temp_acc = 0 then goto skip_ey_move
+       if temp_acc = 0 then goto add_wave_y
        if temp_acc >= 128 then temp_w = temp_w - 1 else temp_w = temp_w + 1
+
+add_wave_y
+       ; Add wave oscillation to Y movement
+       ; Use frame counter + iter offset for wave pattern
+       temp_acc = frame + (iter * 16)
+       temp_acc = temp_acc & 63
+       
+       ; Create wave: 0-31 go up, 32-63 go down (slower wave)
+       ; Move 2 pixels for larger amplitude
+       if temp_acc < 32 then goto wave_up
+       temp_w = temp_w + 2
+       goto skip_ey_move
+
+wave_up
+       temp_w = temp_w - 2
+
 skip_ey_move
        
        ex[iter] = temp_v
@@ -617,19 +646,44 @@ update_explosion_state
    goto enemy_logic_done
 
 try_spawn_enemy
-       ; Random Spawn Chance
-       rand_val = frame & 127
-       if rand_val > 5 then goto enemy_logic_done
+       ; TESTING: Always spawn (100% rate)
+       goto do_spawn
+       
+do_spawn
        
        ; Spawn logic inline
        elife[iter] = 1
-       ; Mix iter into randomness so they don't all spawn at same spot
-       temp_v = frame + iter
-       rand_val = temp_v & 3
-       if rand_val = 0 then ex[iter] = 5 : ey[iter] = 90
-       if rand_val = 1 then ex[iter] = 155 : ey[iter] = 90
-       if rand_val = 2 then ex[iter] = 80 : ey[iter] = 5
-       if rand_val = 3 then ex[iter] = 80 : ey[iter] = 175
+       
+       ; Set High Byte to Camera High Byte (Spawn locally initially)
+       ex_hi[iter] = cam_x_hi
+       
+       ; Randomize Side (L/R) using rand
+       temp_v = rand
+       if temp_v < 128 then goto spawn_left
+       goto spawn_right
+
+spawn_left
+       ; Spawn Left (CamX - 10)
+       temp_w = cam_x
+       temp_v = temp_w - 10
+       ex[iter] = temp_v
+       if temp_v > temp_w then ex_hi[iter] = ex_hi[iter] - 1 ; Underflow
+       if ex_hi[iter] = 255 then ex_hi[iter] = 3 ; Wrap Down
+       goto spawn_set_y
+
+spawn_right
+       ; Spawn Right (CamX + 170)
+       temp_v = cam_x + 170
+       ex[iter] = temp_v
+       if temp_v < 170 then ex_hi[iter] = ex_hi[iter] + 1 ; Overflow
+       if ex_hi[iter] >= 4 then ex_hi[iter] = 0 ; Wrap Up
+
+spawn_set_y
+       ; Random Y (10 to 180) using rand
+       temp_v = rand
+       if temp_v < 10 then temp_v = 10
+       if temp_v > 90 then temp_v = temp_v + 80
+       ey[iter] = temp_v
        
 enemy_logic_done
     next
@@ -647,26 +701,34 @@ spawn_ebul
    ; temp_acc is bullet index
    ; iter is enemy index
    eblife[temp_acc] = 120 ; Increased lifetime
-   ebul_x[temp_acc] = ex[iter]
-   ebul_x_hi[temp_acc] = cam_x_hi ; Approx (assuming local enemy)
-   ebul_y[temp_acc] = ey[iter]
-   ebul_y_hi[temp_acc] = cam_y_hi ; Approx
    
-   temp_v = ex[iter] ; Store ex in temp for logic
-   temp_w = ey[iter] ; Store ey
+   ; Convert enemy world position to screen space
+   ; Check if enemy is on screen first
+   temp_val_hi = ex_hi[iter] - cam_x_hi
+   if temp_val_hi = 3 then temp_val_hi = 255
+   if temp_val_hi = 253 then temp_val_hi = 1
+   if temp_val_hi > 1 && temp_val_hi < 255 then return ; Enemy off-screen, don't fire
    
-   ; Aim at player
-   ; using temp_v/w instead of array access for speed/clarity
-   ; Speed set to 2px/frame
-   ; Aim at player (Wrap Safe)
+   ebul_x[temp_acc] = ex[iter] - cam_x
+   ebul_y[temp_acc] = ey[iter] - cam_y
+   
+   temp_v = ebul_x[temp_acc] ; Screen X
+   temp_w = ebul_y[temp_acc] ; Screen Y
+   
+   ; Aim at player (already in screen space)
+   ; Speed set to 3px/frame
    ; temp_bx = delta X
-   temp_bx = px + 8 ; Target Center
-   temp_bx = temp_bx - temp_v
-   if temp_bx >= 128 then ebul_vx[temp_acc] = 254 : temp_bx = 0 - temp_bx else ebul_vx[temp_acc] = 2
+   temp_bx = px + 8 ; Target Center World X
+   temp_bx = temp_bx - cam_x ; Target Center Screen X
+   temp_bx = temp_bx - temp_v ; Delta Screen X
    
-   temp_by = py + 8 ; Target Center
-   temp_by = temp_by - temp_w
-   if temp_by >= 128 then ebul_vy[temp_acc] = 254 : temp_by = 0 - temp_by else ebul_vy[temp_acc] = 2
+   if temp_bx >= 128 then ebul_vx[temp_acc] = 253 : temp_bx = 0 - temp_bx else ebul_vx[temp_acc] = 3
+   
+   temp_by = py + 8 ; Target Center World Y
+   temp_by = temp_by - cam_y ; Target Center Screen Y
+   temp_by = temp_by - temp_w ; Delta Screen Y
+
+   if temp_by >= 128 then ebul_vy[temp_acc] = 253 : temp_by = 0 - temp_by else ebul_vy[temp_acc] = 3
    
    ; 8-way logic
    temp_v = temp_bx / 2
@@ -684,51 +746,37 @@ update_enemy_bullets
       
       eblife[iter] = eblife[iter] - 1
       
-      ; Move X
+      ; Move X (screen space - simple addition)
       temp_v = ebul_vx[iter]
       if temp_v >= 128 then goto ebul_x_neg
       
       ; Positive X
       ebul_x[iter] = ebul_x[iter] + temp_v
-      if ebul_x[iter] < temp_v then ebul_x_hi[iter] = ebul_x_hi[iter] + 1
       goto ebul_x_done
 
 ebul_x_neg
       temp_v = 0 - temp_v
-      temp_w = ebul_x[iter]
       ebul_x[iter] = ebul_x[iter] - temp_v
-      if ebul_x[iter] > temp_w then ebul_x_hi[iter] = ebul_x_hi[iter] - 1
 
 ebul_x_done
-      ; Wrap X
-      if ebul_x_hi[iter] >= 4 then ebul_x_hi[iter] = 0
-      if ebul_x_hi[iter] = 255 then ebul_x_hi[iter] = 3
-      
-      ; Move Y
+      ; Move Y (screen space - simple addition)
       temp_v = ebul_vy[iter]
       if temp_v >= 128 then goto ebul_y_neg
       
       ; Positive Y
       ebul_y[iter] = ebul_y[iter] + temp_v
-      if ebul_y[iter] < temp_v then ebul_y_hi[iter] = ebul_y_hi[iter] + 1
       goto ebul_y_done
 
 ebul_y_neg
       temp_v = 0 - temp_v
-      temp_w = ebul_y[iter]
       ebul_y[iter] = ebul_y[iter] - temp_v
-      if ebul_y[iter] > temp_w then ebul_y_hi[iter] = ebul_y_hi[iter] - 1
 
 ebul_y_done
-      ; Wrap Y
-      if ebul_y_hi[iter] >= 4 then ebul_y_hi[iter] = 0
-      if ebul_y_hi[iter] = 255 then ebul_y_hi[iter] = 3
-
-      ; Off-Screen Culling
-      temp_v = ebul_x[iter] - cam_x
+      ; Off-Screen Culling (screen space)
+      temp_v = ebul_x[iter]
       if temp_v > 165 then if temp_v < 240 then eblife[iter] = 0
       
-      temp_v = ebul_y[iter] - cam_y
+      temp_v = ebul_y[iter]
       if temp_v > 200 then eblife[iter] = 0
 
 skip_ebul_update
@@ -820,26 +868,30 @@ spawn_asteroid
    return
 
 check_collisions
-   ; 1. Bullets vs Enemies (Loop both)
+   ; 1. Bullets vs Enemies
    for iter = 0 to 3 ; Bullets
       if blife[iter] = 0 then goto skip_bullet_coll
       
       for temp_acc = 0 to 3 ; Enemies
-         if elife[temp_acc] <> 1 then goto skip_enemy_coll ; Only collide with Alive (1). Ignore 0 (Dead) and >1 (Exploding)
+         if elife[temp_acc] <> 1 then goto skip_enemy_coll
          
           ; Is Enemy On Screen? (Check High Byte)
+          ; Short-Circuit: If Same Screen, Skip Math
+          if ex_hi[temp_acc] = cam_x_hi then goto enemy_on_screen_x
+          
           temp_val_hi = ex_hi[temp_acc] - cam_x_hi
           if temp_val_hi = 3 then temp_val_hi = 255
           if temp_val_hi = 253 then temp_val_hi = 1
           if temp_val_hi > 1 && temp_val_hi < 255 then goto skip_enemy_coll
           
+enemy_on_screen_x
           ; Enemy Screen X
           temp_w = ex[temp_acc] - cam_x
           
           ; Check X Collision (Screen Space)
           temp_v = bul_x[iter] - temp_w
           if temp_v >= 128 then temp_v = 0 - temp_v
-          if temp_v >= 4 then goto skip_enemy_coll
+          if temp_v >= 5 then goto skip_enemy_coll ; Increased from 4
           
           ; Enemy Screen Y
           temp_w = ey[temp_acc] - cam_y
@@ -847,7 +899,7 @@ check_collisions
           ; Check Y Collision
           temp_v = bul_y[iter] - temp_w
           if temp_v >= 128 then temp_v = 0 - temp_v
-          if temp_v >= 6 then goto skip_enemy_coll
+          if temp_v >= 7 then goto skip_enemy_coll ; Increased from 6
           
           ; Hit!
           blife[iter] = 0
@@ -870,10 +922,14 @@ skip_bullet_coll
       if elife[iter] <> 1 then goto skip_p_e
       
       ; Is Enemy On Screen?
+      if ex_hi[iter] = cam_x_hi then goto p_e_on_screen_x
+      
       temp_val_hi = ex_hi[iter] - cam_x_hi
       if temp_val_hi = 3 then temp_val_hi = 255
       if temp_val_hi = 253 then temp_val_hi = 1
       if temp_val_hi > 1 && temp_val_hi < 255 then goto skip_p_e
+
+p_e_on_screen_x
       
       ; X Check (Screen Space)
       temp_v = px - cam_x
@@ -899,7 +955,8 @@ skip_bullet_coll
 skip_p_e
    next
    
-   goto check_asteroid_coll
+   ; goto check_asteroid_coll
+   goto check_player_ebul
    
 check_asteroid_coll
    if alife = 0 then goto check_player_ebul
@@ -914,10 +971,14 @@ check_asteroid_coll
       if blife[iter] = 0 then goto skip_bul_ast
       
       ; Check Dist High Byte
+      if ax_hi = cam_x_hi then goto ast_on_screen_x
+      
       temp_val_hi = ax_hi - cam_x_hi
       if temp_val_hi = 3 then temp_val_hi = 255
       if temp_val_hi = 253 then temp_val_hi = 1
       if temp_val_hi > 1 && temp_val_hi < 255 then goto skip_bul_ast
+
+ast_on_screen_x
 
       ; Calculate Screen Space Ax
       temp_w = ax - cam_x ; Screen Ax
@@ -948,10 +1009,14 @@ skip_bul_ast
    
    ; 4. Player vs Asteroid (Screen Space)
    ; Check Dist High Byte
+   if ax_hi = cam_x_hi then goto p_a_on_screen_x
+   
    temp_val_hi = ax_hi - cam_x_hi
    if temp_val_hi = 3 then temp_val_hi = 255
    if temp_val_hi = 253 then temp_val_hi = 1
    if temp_val_hi > 1 && temp_val_hi < 255 then goto check_player_ebul
+
+p_a_on_screen_x
 
    ; Px - Cam vs Ax - Cam  => Px vs Ax (Screen)
    temp_v = px - cam_x
@@ -973,49 +1038,32 @@ skip_bul_ast
    ; TODO: Play Death
    
 check_player_ebul
-   ; Check vs Enemy Bullets
+   ; Check vs Enemy Bullets (Screen Space)
    for iter = 0 to 3
       if eblife[iter] = 0 then goto skip_ebul_coll
       
-      ; --- High Byte / Visibility Check (X) ---
-      temp_val_hi = ebul_x_hi[iter] - cam_x_hi
-      ; Wrap Correction
-      if temp_val_hi = 3 then temp_val_hi = 255
-      if temp_val_hi = 253 then temp_val_hi = 1
-      ; IF not 0, 1, or -1 (255), then it's too far.
-      if temp_val_hi > 1 && temp_val_hi < 255 then goto skip_ebul_coll
-
-      ; --- X Collision ---
-      ; Calculate Screen Coords
+      ; --- Screen Space Collision ---
       temp_v = px - cam_x       ; Player Screen X
-      temp_w = ebul_x[iter] - cam_x ; Bullet Screen X
+      temp_w = ebul_x[iter]     ; Bullet Screen X
       
-      ; Delta = Px - Bx
-      temp_v = temp_v - temp_w
+      ; Delta
+      temp_w = temp_v - temp_w
       
-      ; Center Offset: Px+8 vs Bx+1 implies Px needs to be +7 vs Bx to match.
-      ; Logic: Px - Bx + 7 should be near 0.
-      temp_v = temp_v + 7
+      ; Offset Check (Center-ish)
+      temp_w = temp_w + 7
       
-      if temp_v >= 128 then temp_v = 0 - temp_v ; Abs
-      if temp_v >= 6 then goto skip_ebul_coll   ; Hitbox Width 12
+      if temp_w >= 128 then temp_w = 0 - temp_w
+      if temp_w >= 6 then goto skip_ebul_coll
       
-      ; --- High Byte / Visibility Check (Y) ---
-      temp_val_hi = ebul_y_hi[iter] - cam_y_hi
-      ; Wrap Correction
-      if temp_val_hi = 3 then temp_val_hi = 255
-      if temp_val_hi = 253 then temp_val_hi = 1
-      if temp_val_hi > 1 && temp_val_hi < 255 then goto skip_ebul_coll
-      
-      ; --- Y Collision ---
+      ; Y Check
       temp_v = py - cam_y       ; Player Screen Y
-      temp_w = ebul_y[iter] - cam_y ; Bullet Screen Y
+      temp_w = ebul_y[iter]     ; Bullet Screen Y
       
-      temp_v = temp_v - temp_w
-      temp_v = temp_v + 7 ; Center align (16 vs 2)
+      temp_w = temp_v - temp_w
+      temp_w = temp_w + 7 
       
-      if temp_v >= 128 then temp_v = 0 - temp_v
-      if temp_v >= 10 then goto skip_ebul_coll
+      if temp_w >= 128 then temp_w = 0 - temp_w
+      if temp_w >= 6 then goto skip_ebul_coll
       
       ; Hit Player
       eblife[iter] = 0
@@ -1031,7 +1079,7 @@ coll_done
    return
 
 init_stars
-   for iter = 0 to 9
+   for iter = 0 to 3
       ; Random X (0-159)
       rand_val = frame & 127 : temp_v = rand_val
       rand_val = frame & 32 : temp_v = temp_v + rand_val
@@ -1055,7 +1103,7 @@ init_stars
    return
 
 draw_stars
-   for iter = 0 to 9 ; Reduced from 20 to 10 for performance
+   for iter = 0 to 3 ; Reduced to 4 for performance
       ; Debugging: 1:1 Scrolling to verify camera smoothness
       temp_v = star_x[iter] - cam_x
       
@@ -1163,34 +1211,9 @@ draw_enemy_bullets
    for iter = 0 to 3
       if eblife[iter] = 0 then goto skip_draw_ebul
       
-      ; 16-bit Distance Check (High Byte)
-      temp_val_hi = ebul_x_hi[iter] - cam_x_hi
-      if temp_val_hi = 0 then goto draw_ebul_fast
-      
-      if temp_val_hi = 3 then temp_val_hi = 255 ; Wrap 3->0 (-1)
-      if temp_val_hi = 253 then temp_val_hi = 1 ; Wrap 0->3 (1)
-      
-      ; Filter Far
-      if temp_val_hi > 1 && temp_val_hi < 255 then goto skip_draw_ebul
-      
-draw_ebul_fast
-      ; Screen X
-      temp_v = ebul_x[iter] - cam_x
-      
-      ; Filter Ghosts
-      ; Hi=1 (Right of Cam): Expect Bul < Cam.
-      if temp_val_hi = 1 then if ebul_x[iter] >= cam_x then goto skip_draw_ebul
-      
-      ; Hi=-1 (Left of Cam): Expect Bul > Cam.
-      if temp_val_hi = 255 then if ebul_x[iter] <= cam_x then goto skip_draw_ebul
-
-      ; Manual Culling
-      if temp_v > 165 then if temp_v < 240 then goto skip_draw_ebul
-
-      temp_w = ebul_y[iter] - cam_y
-      if temp_w > 200 then goto skip_draw_ebul
-      
-      plotsprite bullet_conv 3 temp_v temp_w
+      temp_v = ebul_x[iter]
+      temp_w = ebul_y[iter]
+      plotsprite bullet_conv 1 temp_v temp_w
       
 skip_draw_ebul
    next
@@ -1200,6 +1223,16 @@ draw_enemies
    for iter = 0 to 3
       if elife[iter] = 0 then goto skip_draw_enemy
       
+      ; --- Short Circuit Visibility ---
+      if ex_hi[iter] = cam_x_hi then goto enemy_draw_on_screen_x
+
+      ; Standard Visibility Check
+      temp_val_hi = ex_hi[iter] - cam_x_hi
+      if temp_val_hi = 3 then temp_val_hi = 255
+      if temp_val_hi = 253 then temp_val_hi = 1
+      if temp_val_hi > 1 && temp_val_hi < 255 then goto skip_draw_enemy
+
+enemy_draw_on_screen_x
       ; Calculate Screen X
       temp_v = ex[iter] - cam_x
       
@@ -1253,8 +1286,10 @@ draw_asteroid
 
    temp_w = ay - cam_y
    
-   ; Local culling Y (Relaxed: 200 to 220)
-   if temp_w > 200 then if temp_w < 220 then return
+   ; Local culling Y (Strict for 16x32 sprite)
+   ; Use 192 as hard limit for top-of-sprite
+   if temp_w >= 192 then if temp_w < 224 then return
+   ; 224 (-32) allows sprite to peek from top
    
    plotsprite asteroid_M_conv 2 temp_v temp_w
    return

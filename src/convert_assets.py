@@ -197,7 +197,6 @@ if __name__ == "__main__":
     files = [
         "src/bullet.png", 
         "src/fighter.png", 
-        "src/asteroid_L.png",
         "src/asteroid_M.png",
         "src/asteroid_S.png",
         "src/fighter_explode.png",
