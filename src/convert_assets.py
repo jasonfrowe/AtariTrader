@@ -134,24 +134,47 @@ def convert_to_atari_7800(filename):
         # Explicitly tell Pillow that Index 0 is transparent
         new_img.info['transparency'] = 0
         
+        new_img.info['transparency'] = 0
+        
         # Save as NEW filename
         base, ext = os.path.splitext(filename)
-        out_name = f"{base}_conv{ext}"
         
-        # Try optimizing to prompt palette reduction
-        # Using transparency=0 arg in save might help
-        # CRITICAL: Do NOT use optimize=True, it reorders palette! 
-        # We need strict Index 0 = Background.
-        new_img.save(out_name, optimize=False, bits=2, transparency=0) 
-        # bits=2 hints to write 2-bit png? Worth a try.
-        
-        print(f"Converted {filename} -> {out_name}")
+        # Special Case: fighter_explode (32x16 -> 8x 4x16)
+        if "fighter_explode" in filename:
+            print(f"Splitting explosion strip {filename} ({target_w}x{target_h})...")
+            # Width is 32. 8 frames of 4.
+            frame_w = 4
+            num_frames = target_w // frame_w
+            for i in range(num_frames):
+                # Crop
+                left = i * frame_w
+                right = left + frame_w
+                # (left, top, right, bottom)
+                crop = new_img.crop((left, 0, right, target_h))
+                
+                out_name = f"{base}_{i:02d}_conv{ext}"
+                crop.save(out_name, optimize=False, bits=2, transparency=0)
+                print(f"Saved frame {i}: {out_name}")
+        else:
+            out_name = f"{base}_conv{ext}"
+            
+            # Try optimizing to prompt palette reduction
+            # Using transparency=0 arg in save might help
+            # CRITICAL: Do NOT use optimize=True, it reorders palette! 
+            # We need strict Index 0 = Background.
+            new_img.save(out_name, optimize=False, bits=2, transparency=0) 
+            # bits=2 hints to write 2-bit png? Worth a try.
+            
+            print(f"Converted {filename} -> {out_name} ({target_w}x{target_h})")
         
     except Exception as e:
         print(f"Error converting {filename}: {e}")
 
 if __name__ == "__main__":
-    files = ["bullet.png", "fighter.png", "asteroid_L.png", "asteroid_M.png", "asteroid_S.png"]
+    files = ["src/bullet.png", "src/fighter.png", "src/asteroid_L.png", "src/asteroid_M.png", "src/asteroid_S.png", "src/fighter_explode.png"]
     for f in files:
         if os.path.exists(f):
+            print(f"Processing {f}...")
             convert_to_atari_7800(f)
+        else:
+            print(f"File not found: {f}")

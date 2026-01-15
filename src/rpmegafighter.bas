@@ -21,6 +21,15 @@
    
    incgraphic bullet_conv.png
    incgraphic fighter_conv.png
+   ; Explosion Frames (Split for animation)
+   incgraphic fighter_explode_00_conv.png
+   incgraphic fighter_explode_01_conv.png
+   incgraphic fighter_explode_02_conv.png
+   incgraphic fighter_explode_03_conv.png
+   incgraphic fighter_explode_04_conv.png
+   incgraphic fighter_explode_05_conv.png
+   incgraphic fighter_explode_06_conv.png
+   incgraphic fighter_explode_07_conv.png
    incgraphic asteroid_L_conv.png
    incgraphic asteroid_M_conv.png
    incgraphic tileset_blanks.png 160A 3 0 1 2
@@ -541,6 +550,7 @@ update_enemy
     ; Loop through all potential enemies
     for iter = 0 to 3
        if elife[iter] = 0 then goto try_spawn_enemy
+       if elife[iter] > 1 then goto update_explosion_state
        
        ; --- Movement Logic (per enemy) ---
        ; Move every 2nd frame
@@ -579,8 +589,11 @@ skip_firing_chance
        goto enemy_logic_done
 
    P2C1=$04: P2C2=$08: P2C3=$0C ; Asteroids (Greys)
-
-       goto enemy_logic_done
+   
+update_explosion_state
+   elife[iter] = elife[iter] - 1
+   if elife[iter] = 1 then elife[iter] = 0 ; Done, set to Dead
+   goto enemy_logic_done
 
 try_spawn_enemy
        ; Random Spawn Chance
@@ -791,7 +804,7 @@ check_collisions
       if blife[iter] = 0 then goto skip_bullet_coll
       
       for temp_acc = 0 to 3 ; Enemies
-         if elife[temp_acc] = 0 then goto skip_enemy_coll
+         if elife[temp_acc] <> 1 then goto skip_enemy_coll ; Only collide with Alive (1). Ignore 0 (Dead) and >1 (Exploding)
          
           ; Is Enemy On Screen? (Check High Byte)
           temp_val_hi = ex_hi[temp_acc] - cam_x_hi
@@ -817,8 +830,8 @@ check_collisions
           
           ; Hit!
           blife[iter] = 0
-          elife[temp_acc] = 0
-
+          elife[temp_acc] = 18 ; Start Explosion (18 frames)
+          
           ; Increase Player Score
           score_p = score_p + 1 
           if score_p >= 100 then goto you_win
@@ -833,7 +846,7 @@ skip_bullet_coll
    
    ; 2. Player vs Enemies
    for iter = 0 to 3
-      if elife[iter] = 0 then goto skip_p_e
+      if elife[iter] <> 1 then goto skip_p_e
       
       ; Is Enemy On Screen?
       temp_val_hi = ex_hi[iter] - cam_x_hi
@@ -858,7 +871,7 @@ skip_bullet_coll
       if temp_v >= 11 then goto skip_p_e
       
       ; Hit Player
-      elife[iter] = 0
+      elife[iter] = 18 ; Explode
       score_e = score_e + 1
        if score_e >= 100 then goto you_lose
       
@@ -1162,6 +1175,7 @@ skip_draw_ebul
    next
    return
 draw_enemies
+   ; Loop 0-3
    for iter = 0 to 3
       if elife[iter] = 0 then goto skip_draw_enemy
       
@@ -1176,7 +1190,17 @@ draw_enemies
       ; Y Culling (Relaxed)
       if temp_w > 200 then if temp_w < 220 then goto skip_draw_enemy
       
+      if elife[iter] > 1 then goto draw_explosion
       plotsprite fighter_conv 3 temp_v temp_w
+      goto skip_draw_enemy
+
+draw_explosion
+      ; Frame = (18 - elife[iter]) / 2 + offset
+      temp_acc = 18 - elife[iter]
+      temp_acc = temp_acc / 2
+      if temp_acc > 7 then temp_acc = 7
+      
+      plotsprite fighter_explode_00_conv 3 temp_v temp_w temp_acc
 
 skip_draw_enemy
    next
