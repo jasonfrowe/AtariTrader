@@ -34,7 +34,8 @@
    incgraphic asteroid_M_conv.png
    incgraphic tileset_blanks.png 160A 3 0 1 2
    incgraphic scoredigits_8_wide.png
-
+   incgraphic heart_conv.png
+   
    characterset tileset_blanks
 
    ; ---- Dimensions ----
@@ -70,6 +71,8 @@
    dim bul_vx = var26 ; uses 26, 27, 28, 29
    dim bul_vy = var30 ; uses 30, 31, 32, 33
    dim blife = var34 ; uses 34, 35, 36, 37
+   
+   dim player_lives = var147 ; Lives Variable (Safe from collisions)
 
    ; Enemy Bullet Variables (Pool of 2)
    ; Using var60+
@@ -163,14 +166,20 @@ cold_start
     py_hi = 0
     
     ; Scoring Variables
-    ; Scoring Variables
     dim score_p = var144
     dim score_e = var145
     dim bcd_score = var146
     
+    ; Cached BCD Variables (Optimization)
+    dim score_p_bcd = var157
+    dim score_e_bcd = var158
+    
     ; Initialize Scores
     score_p = 0
     score_e = 0
+    score_p_bcd = converttobcd(0)
+    score_e_bcd = converttobcd(0)
+    player_lives = 3
     
     ; Camera Vars
     dim cam_x = var172
@@ -332,11 +341,23 @@ skip_neg_y
 
     ; ---- Draw ----
     ; Draw Scores
+    ; Player (Left) - Green (Pal 3)
+    ; ---- Lives Display (Top Left) ----
+    ; Using Palette 3 (Green)
+    ; ---- Lives Display (Top Left) ----
+    ; Using Palette 5 (Red) per user request
+    ; Unrolled Loop for 3 Hearts (Fast)
+    if player_lives >= 1 then plotsprite heart_conv 5 10 10
+    if player_lives >= 2 then plotsprite heart_conv 5 20 10
+    if player_lives >= 3 then plotsprite heart_conv 5 30 10
+
+    ; Scores (Moved to 45 to clear hearts)
     bcd_score = converttobcd(score_p)
-    plotvalue scoredigits_8_wide 5 bcd_score 2 10 10
+    plotvalue scoredigits_8_wide 3 bcd_score 2 45 10
     
+    ; Enemy (Right) - Red (Pal 5)
     bcd_score = converttobcd(score_e)
-    plotvalue scoredigits_8_wide 3 bcd_score 2 130 10
+    plotvalue scoredigits_8_wide 5 bcd_score 2 130 10
 
     ; Calculate Player Screen Position (relative to camera)
     temp_v = px - cam_x
@@ -834,7 +855,7 @@ check_collisions
           
           ; Increase Player Score
           score_p = score_p + 1 
-          if score_p >= 100 then goto you_win
+          if score_p >= 99 then goto you_win
           
           goto skip_enemy_coll ; Bullet used up
          
@@ -873,7 +894,7 @@ skip_bullet_coll
       ; Hit Player
       elife[iter] = 18 ; Explode
       score_e = score_e + 1
-       if score_e >= 100 then goto you_lose
+       if score_e >= 99 then goto loose_life_check
       
 skip_p_e
    next
@@ -1245,6 +1266,22 @@ you_win
    ;if joy0fire0 then goto cold_start
    ;goto you_win
    goto cold_start
+
+loose_life_check
+    player_lives = player_lives - 1
+    if player_lives <= 0 then goto you_lose
+    goto round_reset
+
+round_reset
+    ; Reset scores but keep game going
+    score_p = 0
+    score_e = 0
+    
+    ; Short pause/flash to indicate restart?
+    clearscreen
+    drawscreen
+    
+    goto main_loop
 
 you_lose
    ;clearscreen

@@ -8,7 +8,7 @@
             "generator": "Unix Makefiles",
             "binaryDir": "${sourceDir}/build",
             "cacheVariables": {
-                "BASIC7800_DIR": "/Users/jasonrowe/Software/7800basic"
+                "BASIC7800_DIR": "/Users/rowe/Software/Atari7800/7800basic"
             }
         }
     ],

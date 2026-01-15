@@ -7,7 +7,7 @@ project(AtariTrader
 
 # Set 7800basic installation directory
 if(NOT DEFINED BASIC7800_DIR)
-    set(BASIC7800_DIR "/Users/jasonrowe/Software/7800basic" CACHE PATH "7800basic installation directory")
+    set(BASIC7800_DIR "/Users/rowe/Software/Atari7800/7800basic" CACHE PATH "7800basic installation directory")
 endif()
 
 # Find 7800basic tools

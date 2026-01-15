@@ -37,6 +37,29 @@ def convert_to_atari_7800(filename):
         target_w = max(width, 4)
         target_h = max(height, 16)
         
+        # Special Case: heart needs to be 8x16 (padded)
+        if "heart" in filename:
+            print(f"Resizing {filename} to 8x16...")
+            img = img.resize((8, 16), Image.NEAREST) # Force 8x8 input to 8x16 (stretch) or just pad?
+            # 8x8 stretched to 8x16 is ugly. Let's PAD it.
+            # Create new 8x16, paste 8x8 centered?
+            # Actually, user made 8x8. 7800 160A mode doubles width pixels.
+            # 8px wide in source = 16px wide on screen? No, "160A" is confusing. 
+            # 160A means effective resolution 160x192. Pixels are wide.
+            # If we want square heart on screen:
+            # Source 8x8 -> Screen 8x8 (looks wide).
+            # Source 4x8 -> Screen 8x8 (square).
+            # But "heart.png" is 8x8.
+            # Let's just resize it to 8x16 (2x height) to counteract the wide pixels?
+            # No, wide pixels squash height relative to width.
+            # Wait, "doubling the pixels in our python conversion script" (User Step 810).
+            # If pixels are doubled, we should provide 1:1?
+            # Let's stick to the script's default behavior for now, but ensure it meets 8x16 min height required by MARIA?
+            # No, standard sprite height can be anything.
+            # Just force resize to 8x16 for now as requested by user logic previously.
+            img = img.resize((8, 16), Image.NEAREST)
+            width, height = img.size
+            target_w, target_h = 8, 16         
         # Create a "P" image with strict palette
         # Init with 0 (transparent)
         new_img = Image.new("P", (target_w, target_h), 0)
@@ -171,7 +194,15 @@ def convert_to_atari_7800(filename):
         print(f"Error converting {filename}: {e}")
 
 if __name__ == "__main__":
-    files = ["src/bullet.png", "src/fighter.png", "src/asteroid_L.png", "src/asteroid_M.png", "src/asteroid_S.png", "src/fighter_explode.png"]
+    files = [
+        "src/bullet.png", 
+        "src/fighter.png", 
+        "src/asteroid_L.png",
+        "src/asteroid_M.png",
+        "src/asteroid_S.png",
+        "src/fighter_explode.png",
+        "src/heart.png"
+    ]
     for f in files:
         if os.path.exists(f):
             print(f"Processing {f}...")

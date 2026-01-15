@@ -1,5 +1,8 @@
 ; This file contains variable mapping and other information for the current project.
 
+heart_conv_mode = $00
+heart_conv_width_twoscompliment = $1e
+heart_conv_width = $02
 scoredigits_8_wide_mode = $00
 scoredigits_8_wide_width_twoscompliment = $00
 scoredigits_8_wide_width = $20
@@ -118,6 +121,10 @@ cam_x_hi = var173
  
 cam_x = var172
  
+score_e_bcd = var158
+ 
+score_p_bcd = var157
+ 
 bcd_score = var146
  
 score_e = var145
@@ -213,6 +220,8 @@ ebul_y = var64
  
 ebul_x = var60
  
+player_lives = var147
+ 
 blife = var34
  
 bul_vy = var30
@@ -263,6 +272,10 @@ py = var1
  
 px = var0
  
+heart_conv_color3 = $0f
+heart_conv_color2 = $38
+heart_conv_color1 = $1d
+heart_conv_color0 = $00
 scoredigits_8_wide_color3 = $0c
 scoredigits_8_wide_color2 = $09
 scoredigits_8_wide_color1 = $00
