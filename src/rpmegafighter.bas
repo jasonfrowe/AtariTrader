@@ -148,11 +148,12 @@
 cold_start
    ; Palette Setup
    P0C1=$26: P0C2=$24: P0C3=$04
-   P1C1=$0E: P1C2=$38: P1C3=$FC ; Bullets (Yellow/White)
+   P1C1=$C2: P1C2=$C6: P1C3=$CA ; Player Bullets (Green)
    P2C1=$94: P2C2=$98: P2C3=$9C ; Asteroids (Blue for debug distinction)
    P3C1=$B4: P3C2=$46: P3C3=$1C ; Enemy (Green, Red, Yellow)
    P4C1=$08: P4C2=$0C: P4C3=$0F ; Stars (Dim Grey, Light Grey, White)
    P5C1=$34: P5C2=$86: P5C3=$0A ; Spaceship
+   P6C1=$42: P6C2=$46: P6C3=$4A ; Enemy Bullets (Red)
    
    BACKGRND=$00 ; Set Background to Black
 
@@ -1213,7 +1214,7 @@ draw_enemy_bullets
       
       temp_v = ebul_x[iter]
       temp_w = ebul_y[iter]
-      plotsprite bullet_conv 1 temp_v temp_w
+      plotsprite bullet_conv 6 temp_v temp_w
       
 skip_draw_ebul
    next
