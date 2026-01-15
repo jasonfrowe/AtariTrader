@@ -23,6 +23,22 @@
    incgraphic fighter_conv.png
    incgraphic asteroid_L_conv.png
    incgraphic asteroid_M_conv.png
+   incgraphic scoredigits_s00.png
+   incgraphic scoredigits_s01.png
+   incgraphic scoredigits_s02.png
+   incgraphic scoredigits_s03.png
+   incgraphic scoredigits_s04.png
+   incgraphic scoredigits_s05.png
+   incgraphic scoredigits_s06.png
+   incgraphic scoredigits_s07.png
+   incgraphic scoredigits_s08.png
+   incgraphic scoredigits_s09.png
+   incgraphic scoredigits_s10.png
+   incgraphic scoredigits_s11.png
+   incgraphic scoredigits_s12.png
+   incgraphic scoredigits_s13.png
+   incgraphic scoredigits_s14.png
+   incgraphic scoredigits_s15.png
 
    ; ---- Dimensions ----
    dim px = var0
@@ -124,6 +140,8 @@
    ; For 4px/frame speed, sub-pixel is less critical, but angles might need it.
    ; Let's try without reminders first for simplicity/RAM saving.
 
+
+cold_start
    ; Palette Setup
    P0C1=$26: P0C2=$24: P0C3=$04
    P1C1=$0E: P1C2=$38: P1C3=$FC ; Bullets (Yellow/White)
@@ -141,6 +159,16 @@
     py = 90
     dim py_hi = var171
     py_hi = 0
+    
+    ; Scoring Variables
+    ; Scoring Variables
+    dim score_p = var144
+    dim score_e = var145
+    dim bcd_score = var146
+    
+    ; Initialize Scores
+    score_p = 0
+    score_e = 0
     
     ; Camera Vars
     dim cam_x = var172
@@ -310,6 +338,13 @@ skip_neg_y
      if alife > 0 then gosub draw_asteroid
    
     gosub draw_enemy_bullets
+    
+    ; Draw Scores
+    bcd_score = converttobcd(score_p)
+    plotvalue scoredigits_s00 5 bcd_score 2 10 10
+    
+    bcd_score = converttobcd(score_e)
+    plotvalue scoredigits_s00 3 bcd_score 2 130 10
 
    drawscreen
    goto main_loop
@@ -789,6 +824,11 @@ check_collisions
           ; Hit!
           blife[iter] = 0
           elife[temp_acc] = 0
+
+          ; Increase Player Score
+          score_p = score_p + 1 
+          if score_p >= 100 then goto you_win
+          
           goto skip_enemy_coll ; Bullet used up
          
 skip_enemy_coll
@@ -825,7 +865,8 @@ skip_bullet_coll
       
       ; Hit Player
       elife[iter] = 0
-      ; TODO: Death
+      score_e = score_e + 1
+       if score_e >= 100 then goto you_lose
       
 skip_p_e
    next
@@ -950,8 +991,10 @@ check_player_ebul
       
       ; Hit Player
       eblife[iter] = 0
-      ; TODO: Player Death (Flash screen? Sound?)
       playsfx sfx_laser 0 ; Reuse sound for hit confirm
+      
+      score_e = score_e + 1
+      if score_e >= 100 then goto you_lose
       
 skip_ebul_coll
    next
@@ -1175,3 +1218,17 @@ draw_asteroid
    
    plotsprite asteroid_M_conv 2 temp_v temp_w
    return
+
+you_win
+   clearscreen
+   BACKGRND= ; Greenish Blue
+   drawscreen
+   if joy0fire0 then goto cold_start
+   goto you_win
+
+you_lose
+   clearscreen
+   BACKGRND= ; Red
+   drawscreen
+   if joy0fire0 then goto cold_start
+   goto you_lose
