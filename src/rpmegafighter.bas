@@ -850,13 +850,13 @@ spawn_asteroid
    temp_v = ax + cam_x
    ax = temp_v
    ax_hi = cam_x_hi
-   if ax < temp_v then ax_hi = ax_hi + 1 ; Carry
+   if ax < cam_x then ax_hi = ax_hi + 1 ; Carry Corrected
    if ax_hi >= 4 then ax_hi = 0 ; Wrap Safe
    
    temp_v = ay + cam_y
    ay = temp_v
    ay_hi = cam_y_hi
-   if ay < temp_v then ay_hi = ay_hi + 1
+   if ay < cam_y then ay_hi = ay_hi + 1 ; Carry Corrected
    if ay_hi >= 4 then ay_hi = 0
    
    ; Random Velocity (Slow drift)
