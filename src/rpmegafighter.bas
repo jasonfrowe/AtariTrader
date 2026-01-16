@@ -438,21 +438,17 @@ apply_thrust
 
 neutralize_forces
    ; X Axis
-   if vx_p > 0 && vx_m > 0 then gosub cancel_x
-   ; Y Axis
-   if vy_p > 0 && vy_m > 0 then gosub cancel_y
-   return
-
-cancel_x
+   if vx_p = 0 || vx_m = 0 then goto skip_nx
    if vx_p < vx_m then common = vx_p else common = vx_m
    vx_p = vx_p - common
    vx_m = vx_m - common
-   return
-
-cancel_y
+skip_nx
+   ; Y Axis
+   if vy_p = 0 || vy_m = 0 then goto skip_ny
    if vy_p < vy_m then common = vy_p else common = vy_m
    vy_p = vy_p - common
    vy_m = vy_m - common
+skip_ny
    return
 
 apply_friction
@@ -472,30 +468,26 @@ apply_friction
 
 update_bullets
    for iter = 0 to 3
-      if blife[iter] > 0 then gosub move_one_bullet
+      if blife[iter] = 0 then goto skip_bul_move
+      ; Screen Space Movement (Simple 8-bit)
+      ; X Axis
+      temp_v = bul_vx[iter]
+      bul_x[iter] = bul_x[iter] + temp_v
+      
+      ; Bounds Check X (Kill if off screen)
+      if bul_x[iter] > 170 then if bul_x[iter] < 240 then blife[iter] = 0
+
+      ; Y Axis
+      temp_v = bul_vy[iter]
+      bul_y[iter] = bul_y[iter] + temp_v
+      
+      ; Bounds Check Y
+      if bul_y[iter] > 200 then blife[iter] = 0
+      
+      ; Lifetime Check
+      if blife[iter] > 0 then blife[iter] = blife[iter] - 1
+skip_bul_move
    next
-   return
-
-move_one_bullet
-   ; Screen Space Movement (Simple 8-bit)
-   ; X Axis
-   temp_v = bul_vx[iter]
-   bul_x[iter] = bul_x[iter] + temp_v
-   
-   ; Bounds Check X (Kill if off screen)
-   ; Valid: 0-160. Margins: 240-255 (-16) and 160-170.
-   ; Kill if > 170 and < 240
-   if bul_x[iter] > 170 then if bul_x[iter] < 240 then blife[iter] = 0
-
-   ; Y Axis
-   temp_v = bul_vy[iter]
-   bul_y[iter] = bul_y[iter] + temp_v
-   
-   ; Bounds Check Y
-   if bul_y[iter] > 200 then blife[iter] = 0
-   
-   ; Lifetime Check
-   if blife[iter] > 0 then blife[iter] = blife[iter] - 1
    return
 
 
@@ -1100,21 +1092,31 @@ init_stars
    return
 
 draw_stars
-   for iter = 0 to 3 ; Reduced to 4 for performance
-      ; Debugging: 1:1 Scrolling to verify camera smoothness
-      temp_v = star_x[iter] - cam_x
-      
-      ; Manual Culling
-      if temp_v > 165 then goto skip_star_draw
-      
-      temp_w = star_y[iter] - cam_y
-      if temp_w > 200 then goto skip_star_draw
-      
-      ; Reuse bullet_conv sprite (2x2 pixel)
-      plotsprite bullet_conv 4 temp_v temp_w
-      
-skip_star_draw
-   next
+   ; Unrolled loop for performance (4 stars)
+   temp_v = star_x[0] - cam_x
+   if temp_v > 165 then goto skip_s0
+   temp_w = star_y[0] - cam_y
+   if temp_w > 200 then goto skip_s0
+   plotsprite bullet_conv 4 temp_v temp_w
+skip_s0
+   temp_v = star_x[1] - cam_x
+   if temp_v > 165 then goto skip_s1
+   temp_w = star_y[1] - cam_y
+   if temp_w > 200 then goto skip_s1
+   plotsprite bullet_conv 4 temp_v temp_w
+skip_s1
+   temp_v = star_x[2] - cam_x
+   if temp_v > 165 then goto skip_s2
+   temp_w = star_y[2] - cam_y
+   if temp_w > 200 then goto skip_s2
+   plotsprite bullet_conv 4 temp_v temp_w
+skip_s2
+   temp_v = star_x[3] - cam_x
+   if temp_v > 165 then goto skip_s3
+   temp_w = star_y[3] - cam_y
+   if temp_w > 200 then goto skip_s3
+   plotsprite bullet_conv 4 temp_v temp_w
+skip_s3
    return
 
    dim sc1 = var140
