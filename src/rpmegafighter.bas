@@ -436,14 +436,13 @@ skip_neg_y
     ; characterset is already set above
     plotchars 'ABCDE' 7 60 0
     
-    ; DEBUG: Display config values
-    temp_v = converttobcd(enemy_move_mask)
-    plotvalue scoredigits_8_wide 2 temp_v 1 10 0
-    temp_v = converttobcd(enemy_fire_cooldown)
-    plotvalue scoredigits_8_wide 2 temp_v 2 130 0
-    ; Show current level
-    temp_v = converttobcd(current_level)
-    plotvalue scoredigits_8_wide 4 temp_v 1 75 0
+    ; DEBUG: Uncomment to display config values during testing
+    ; temp_v = converttobcd(enemy_move_mask)
+    ; plotvalue scoredigits_8_wide 2 temp_v 1 10 0
+    ; temp_v = converttobcd(enemy_fire_cooldown)
+    ; plotvalue scoredigits_8_wide 2 temp_v 2 130 0
+    ; temp_v = converttobcd(current_level)
+    ; plotvalue scoredigits_8_wide 4 temp_v 1 75 0
 
 
     ; Use cached screen position

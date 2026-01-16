@@ -1,5 +1,22 @@
 # AtariTrader Game Development TODO
 
+## Summary
+
+### ✅ Completed Features (Phase 1-3)
+- **Core Mechanics**: Shield/Fighter/Lives system fully operational
+- **Level Progression**: 5 levels with progressive difficulty (fighters, refills, enemy speed, fire rate)
+- **HUD**: Displays shields, fighters, lives, prizes
+- **Win/Loss Flow**: Level complete, level restart, game over screens
+- **Difficulty Scaling**: Enemy movement speed and fire rate increase per level
+- **Memory Management**: Fixed 4 critical variable collisions (documented in MEMORY_MAP.md)
+
+### 🎯 Next Priorities (Phase 2)
+1. **Prize Collection**: Proximity detection, collection logic, display update
+2. **Asteroid Hazards**: Bounce physics, shield damage (-10 on collision)
+3. **Enemy AI**: Asteroid avoidance behavior
+
+---
+
 ## Asset Creation (User Tasks)
 - [ ] Compose music tracks for levels
 - [ ] Create title cards for story
@@ -90,9 +107,9 @@
 
 ### Level Variables
 - [x] Add `current_level` variable (1-5 or more)
-- [ ] Add `level_config` arrays for difficulty scaling:
-  - [ ] `level_enemy_speed` - enemy movement speed per level **← NEXT**
-  - [ ] `level_fire_cooldown` - frames between shots **← NEXT**
+- [x] Add `level_config` for difficulty scaling:
+  - [x] `enemy_move_mask` - enemy movement speed per level (mask-based)
+  - [x] `enemy_fire_cooldown` - frames between shots
   - [x] `level_fighter_count` - total fighters to destroy (via `set_level_fighters`)
   - [x] `level_shield_refill` - partial shield restore amount (hardcoded formula)
 
@@ -100,8 +117,8 @@
 - [x] Create `init_level` subroutine
   - [x] Set fighter count from current level
   - [x] Refill shields (partial based on level)
-  - [ ] Set enemy speed from level config **← NEXT**
-  - [ ] Set fire cooldown from level config **← NEXT**
+  - [x] Set enemy speed from level config (via `set_level_config`)
+  - [x] Set fire cooldown from level config (via `set_level_config`)
 - [x] Reset prize locations
 - [x] Reset asteroid position
 
@@ -113,20 +130,18 @@
   - [x] Wait for button press to continue
 - [x] Call `init_level` for next level
 
-### Difficulty Scaling (Example Values)
-**Current Status: Fighter counts implemented, need speed/cooldown**
-- [x] **Level 1**: Fighters=20, Shield Refill=50%
-- [x] **Level 2**: Fighters=40, Shield Refill=40%
-- [x] **Level 3**: Fighters=60, Shield Refill=30%
-- [x] **Level 4**: Fighters=80, Shield Refill=20%
-- [x] **Level 5**: Fighters=99, Shield Refill=10%
+### Difficulty Scaling
+**Status: ✅ COMPLETE - All levels have progressive difficulty**
+- [x] **Level 1**: Speed=1px/2frames, Cooldown=60, Fighters=20, Shield Refill=50%
+- [x] **Level 2**: Speed=1px/2frames, Cooldown=45, Fighters=40, Shield Refill=40%
+- [x] **Level 3**: Speed=1px/frame, Cooldown=30, Fighters=60, Shield Refill=30%
+- [x] **Level 4**: Speed=1px/frame, Cooldown=25, Fighters=80, Shield Refill=20%
+- [x] **Level 5**: Speed=1px/frame, Cooldown=20, Fighters=99, Shield Refill=10%
 
-**TODO: Add difficulty scaling:**
-- [ ] **Level 1**: Speed=1px/2frames, Cooldown=60
-- [ ] **Level 2**: Speed=1px/frame, Cooldown=45
-- [ ] **Level 3**: Speed=2px/frame, Cooldown=30
-- [ ] **Level 4**: Speed=2px/frame, Cooldown=25
-- [ ] **Level 5**: Speed=3px/frame, Cooldown=20
+**Implementation Notes:**
+- Movement speed controlled by `enemy_move_mask` (1=slow, 0=fast)
+- Fire rate controlled by `enemy_fire_cooldown` (higher=slower)
+- All settings applied via `set_level_config` subroutine
 
 ---
 
