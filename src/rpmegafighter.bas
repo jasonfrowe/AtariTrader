@@ -386,12 +386,10 @@ skip_neg_y
     if player_lives >= 3 then plotchars 'F' 5 30 11
 
     ; Scores (Moved to 40 to clear hearts, compact)
-    bcd_score = converttobcd(score_p)
-    plotvalue scoredigits_8_wide 3 bcd_score 2 40 0
+    plotvalue scoredigits_8_wide 3 score_p_bcd 2 40 0
     
     ; Enemy (Right) - Red (Pal 5)
-    bcd_score = converttobcd(score_e)
-    plotvalue scoredigits_8_wide 5 bcd_score 2 104 0
+    plotvalue scoredigits_8_wide 5 score_e_bcd 2 104 0
 
     ; Draw 5 Treasures (Index 10/'A')
     ; alphachars setup in header allows 'A' -> Index 10 mapping
@@ -499,49 +497,7 @@ move_one_bullet
    ; Lifetime Check
    if blife[iter] > 0 then blife[iter] = blife[iter] - 1
    return
-   ; --- Dead Code Below ---
 
-bul_x_neg
-   temp_v = 0 - temp_v
-   temp_w = bul_x[iter]
-   bul_x[iter] = bul_x[iter] - temp_v
-   if bul_x[iter] > temp_w then bul_x_hi[iter] = bul_x_hi[iter] - 1
-
-bul_x_done
-   ; Wrap X
-   if bul_x_hi[iter] >= 4 then bul_x_hi[iter] = 0
-   if bul_x_hi[iter] = 255 then bul_x_hi[iter] = 3
-   
-   ; Y Axis
-   temp_v = bul_vy[iter]
-   if temp_v >= 128 then goto bul_y_neg
-   
-   ; Positive Y
-   bul_y[iter] = bul_y[iter] + temp_v
-   if bul_y[iter] < temp_v then bul_y_hi[iter] = bul_y_hi[iter] + 1
-   goto bul_y_done
-
-bul_y_neg
-   temp_v = 0 - temp_v
-   temp_w = bul_y[iter]
-   bul_y[iter] = bul_y[iter] - temp_v
-   if bul_y[iter] > temp_w then bul_y_hi[iter] = bul_y_hi[iter] - 1
-
-bul_y_done
-   ; Wrap Y
-   if bul_y_hi[iter] >= 4 then bul_y_hi[iter] = 0
-   if bul_y_hi[iter] = 255 then bul_y_hi[iter] = 3
-   
-   ; Off-Screen Culling (Screen Space Check)
-   temp_v = bul_x[iter] - cam_x
-   if temp_v > 165 then if temp_v < 240 then blife[iter] = 0 ; 160 + margin
-   
-   temp_v = bul_y[iter] - cam_y
-   if temp_v > 200 then blife[iter] = 0 ; 192 + margin
-   
-   ; Lifetime Check (Backup cleanup)
-   if blife[iter] > 0 then blife[iter] = blife[iter] - 1
-   return
 
 fire_bullet
    ; Find free slot
@@ -947,7 +903,7 @@ enemy_on_screen_x
           elife[temp_acc] = 18 ; Start Explosion (18 frames)
           
           ; Increase Player Score
-          score_p = score_p + 1 
+          score_p = score_p + 1 : score_p_bcd = converttobcd(score_p)
           if score_p >= 99 then goto you_win
           
           goto skip_enemy_coll ; Bullet used up
@@ -990,7 +946,7 @@ p_e_on_screen_x
       
       ; Hit Player
       elife[iter] = 18 ; Explode
-      score_e = score_e + 1
+      score_e = score_e + 1 : score_e_bcd = converttobcd(score_e)
        if score_e >= 99 then goto loose_life_check
       
 skip_p_e
@@ -1110,7 +1066,7 @@ check_player_ebul
       eblife[iter] = 0
       playsfx sfx_laser 0 ; Reuse sound for hit confirm
       
-      score_e = score_e + 1
+      score_e = score_e + 1 : score_e_bcd = converttobcd(score_e)
       if score_e >= 100 then goto you_lose
       
 skip_ebul_coll
@@ -1350,8 +1306,8 @@ loose_life_check
 
 round_reset
     ; Reset scores but keep game going
-    score_p = 0
-    score_e = 0
+    score_p = 0 : score_p_bcd = converttobcd(0)
+    score_e = 0 : score_e_bcd = converttobcd(0)
     
     ; Short pause/flash to indicate restart?
     clearscreen
