@@ -1109,10 +1109,18 @@ update_render_coords
       if temp_val_hi > 1 && temp_val_hi < 255 then e_on[iter] = 0 : goto next_r_enemy
 e_r_on_x
       temp_v = ex[iter] - cam_x
-      if temp_v > 170 then if temp_v < 240 then e_on[iter] = 0 : goto next_r_enemy
+      ; Screen is 160 wide, enemy is ~8 wide
+      ; Valid range: 0-167 (screen + margin)
+      ; Wrap-around range: 240-255 (-16 to -1, should be visible)
+      ; Cull range: 168-239
+      if temp_v > 167 then if temp_v < 240 then e_on[iter] = 0 : goto next_r_enemy
       
       temp_w = ey[iter] - cam_y
-      if temp_w > 200 then if temp_w < 240 then e_on[iter] = 0 : goto next_r_enemy
+      ; Screen is 192 high, enemy is ~8 high
+      ; Valid range: 0-199 (screen + margin)
+      ; Wrap-around range: 240-255 (-16 to -1, should be visible)
+      ; Cull range: 200-239
+      if temp_w > 199 then if temp_w < 240 then e_on[iter] = 0 : goto next_r_enemy
 
       ex_scr[iter] = temp_v
       ey_scr[iter] = temp_w
@@ -1129,9 +1137,18 @@ next_r_enemy
    if temp_val_hi > 1 && temp_val_hi < 255 then a_on = 0 : return
 a_r_on_x
    temp_v = ax - cam_x
-   if temp_v > 170 then if temp_v < 240 then a_on = 0 : return
+   ; Screen is 160 wide, asteroid is ~16 wide
+   ; Valid range: 0-175 (screen + margin)
+   ; Wrap-around range: 240-255 (-16 to -1, should be visible)
+   ; Cull range: 176-239
+   if temp_v > 175 then if temp_v < 240 then a_on = 0 : return
+   
    temp_w = ay - cam_y
-   if temp_w > 200 then if temp_w < 240 then a_on = 0 : return
+   ; Screen is 192 high, asteroid is ~16 high
+   ; Valid range: 0-207 (screen + margin)
+   ; Wrap-around range: 240-255 (-16 to -1, should be visible)
+   ; Cull range: 208-239
+   if temp_w > 207 then if temp_w < 240 then a_on = 0 : return
 
    ax_scr = temp_v
    ay_scr = temp_w
