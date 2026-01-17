@@ -1341,7 +1341,7 @@ level_complete
    ; All fighters destroyed - level won!
    gosub StopMusic
    clearscreen
-   BACKGRND=$B4  ; Green = victory
+   BACKGRND=$00  ; Black (was Green)
    ; Display level number
    temp_v = converttobcd(current_level)
    plotvalue scoredigits_8_wide 7 temp_v 1 75 88
@@ -1473,7 +1473,7 @@ you_win_game
    ; Won all levels!
    gosub StopMusic
    clearscreen
-   BACKGRND=$B4  ; Green = victory
+   BACKGRND=$00  ; Black (was Green)
    ; Flash celebration
    drawscreen
    ; Wait for button release first
@@ -1501,7 +1501,7 @@ you_lose
    ; Game Over - no lives left
    gosub StopMusic
    clearscreen
-   BACKGRND=$44  ; Red = game over
+   BACKGRND=$00  ; Black (was Red)
    drawscreen
    ; Wait for button release first
 you_lose_release
@@ -1563,7 +1563,9 @@ PlayMusic
    lda (temp1),y  ; A = Value
    sta $0450,x    ; Write to POKEY
    iny
-   bne .Loop      ; Safety branch (though 0xFF should catch it)
+   cpy #64        ; Safety: Prevent infinite processing (Max 64 bytes/frame)
+   bcs .EndFrame  ; Force exit if too many bytes
+   bne .Loop      ; Continue if not 0
 
 .EndFrame:
    ; Advance pointer past the 0xFF
