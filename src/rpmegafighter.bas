@@ -130,10 +130,12 @@
    dim acc_my = var79
 
    ; Music State (Safe Zone per MEMORY_MAP)
+   dim music_active = var230 ; 0=Stopped, 1=Playing
    dim music_ptr_lo = var228
    dim music_ptr_hi = var229
    
    dim rand_val = var148
+   dim screen_timer = var149 ; Generic timeout timer
    
    ; Asteroid Variables (Single Large Asteroid)
    ; Moved to var150 to make room for enemy arrays
@@ -168,6 +170,8 @@
 
 
 cold_start
+   screen_timer = 250 ; Approx 4s timeout
+   music_active = 0 ; Ensure music state is clean
    ; Palette Setup
    P0C1=$26: P0C2=$24: P0C3=$04 ; Background/UI
    P1C1=$C2: P1C2=$C6: P1C3=$CA ; Player Bullets (Green)
@@ -230,6 +234,10 @@ title_loop
     drawscreen
     
     if joy0fire0 then goto init_game
+    
+    screen_timer = screen_timer - 1
+    if screen_timer = 0 then goto init_game
+    
     goto title_loop
 
 init_game
@@ -968,7 +976,7 @@ skip_bullet_coll
       elife[iter] = 18 ; Explode
       
       ; Decrement Shields
-      player_shield = player_shield - 2
+      if player_shield < 2 then player_shield = 0 else player_shield = player_shield - 2
       shield_bcd = converttobcd(player_shield)
       
       ; Also decrement fighter count (fighter destroyed)
@@ -1052,7 +1060,7 @@ check_player_ebul
       playsfx sfx_laser 0 ; Reuse sound for hit confirm
       
       ; Decrement Shields
-      player_shield = player_shield - 1
+      if player_shield < 1 then player_shield = 0 else player_shield = player_shield - 1
       shield_bcd = converttobcd(player_shield)
       if player_shield <= 0 then goto lose_life
       
@@ -1318,8 +1326,14 @@ level_complete_release
    if joy0fire0 then goto level_complete_release
    
    ; Now wait for button press
+   screen_timer = 250
 level_complete_wait
+   screen_timer = screen_timer - 1
+   if screen_timer = 0 then goto level_next
+   drawscreen
    if !joy0fire0 then goto level_complete_wait
+   
+level_next
    
    ; Advance to next level
    current_level = current_level + 1
@@ -1431,7 +1445,7 @@ set_level_config
 
 you_win_game
    ; Won all levels!
-   osub StopMusicg
+   gosub StopMusic
    clearscreen
    BACKGRND=$B4  ; Green = victory
    ; Flash celebration
@@ -1441,7 +1455,11 @@ you_win_release
    if joy0fire0 then goto you_win_release
    
    ; Now wait for new press
+   screen_timer = 250
 you_win_wait
+   screen_timer = screen_timer - 1
+   if screen_timer = 0 then goto cold_start
+   drawscreen
    if !joy0fire0 then goto you_win_wait
    goto cold_start
 
@@ -1464,7 +1482,11 @@ you_lose_release
    if joy0fire0 then goto you_lose_release
    
    ; Now wait for new press
+   screen_timer = 250
 you_lose_wait
+   screen_timer = screen_timer - 1
+   if screen_timer = 0 then goto cold_start
+   drawscreen
    if !joy0fire0 then goto you_lose_wait
    goto cold_start
 

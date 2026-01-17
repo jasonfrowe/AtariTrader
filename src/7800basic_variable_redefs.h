@@ -192,11 +192,15 @@ ay = var151
  
 ax = var150
  
+screen_timer = var149
+ 
 rand_val = var148
  
 music_ptr_hi = var229
  
 music_ptr_lo = var228
+ 
+music_active = var230
  
 acc_my = var79
  
