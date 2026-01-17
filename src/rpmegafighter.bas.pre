@@ -1,0 +1,1545 @@
+ displaymode 160A
+ set doublewide on
+ set pokeysupport on
+
+
+ incgraphic sprite_spaceship1.png
+ incgraphic sprite_spaceship2.png
+ incgraphic sprite_spaceship3.png
+ incgraphic sprite_spaceship4.png
+ incgraphic sprite_spaceship5.png
+ incgraphic sprite_spaceship6.png
+ incgraphic sprite_spaceship7.png
+ incgraphic sprite_spaceship8.png
+ incgraphic sprite_spaceship9.png
+ incgraphic sprite_spaceship10.png
+ incgraphic sprite_spaceship11.png
+ incgraphic sprite_spaceship12.png
+ incgraphic sprite_spaceship13.png
+ incgraphic sprite_spaceship14.png
+ incgraphic sprite_spaceship15.png
+ incgraphic sprite_spaceship16.png
+
+ incgraphic bullet_conv.png
+ incgraphic fighter_conv.png
+
+ incgraphic fighter_explode_00_conv.png
+ incgraphic fighter_explode_01_conv.png
+ incgraphic fighter_explode_02_conv.png
+ incgraphic fighter_explode_03_conv.png
+ incgraphic fighter_explode_04_conv.png
+ incgraphic fighter_explode_05_conv.png
+ incgraphic fighter_explode_06_conv.png
+ incgraphic fighter_explode_07_conv.png
+ incbanner title_screen_conv.png 160A 0 1 2 3
+
+ incgraphic asteroid_M_conv.png
+
+
+ alphachars '0123456789ABCDEF'
+ incgraphic scoredigits_8_wide.png 160A
+
+ characterset scoredigits_8_wide
+
+
+ dim px  =  var0
+ dim py  =  var1
+ dim vx_p  =  var2
+ dim vx_m  =  var3
+ dim vy_p  =  var4
+ dim vy_m  =  var5
+ dim rx  =  var6
+ dim ry  =  var7
+ dim angle  =  var8
+ dim shpfr  =  var9
+ dim rot_timer  =  var10
+ dim move_step  =  var11
+ dim temp_acc  =  var12
+ dim frame  =  var13
+ dim common  =  var14
+ dim temp_v  =  var15
+ dim bcooldown  =  var16
+ dim iter  =  var17
+ dim temp_bx  =  var38
+ dim temp_by  =  var39
+
+
+
+
+
+
+
+ dim bul_x  =  var18
+ dim bul_y  =  var22
+ dim bul_vx  =  var26
+ dim bul_vy  =  var30
+ dim blife  =  var34
+
+ dim player_lives  =  var147
+
+
+
+ dim ebul_x  =  var60
+
+
+
+ dim ebul_y  =  var64
+ dim ebul_vx  =  var68
+ dim ebul_vy  =  var160
+ dim eblife  =  var164
+
+
+ dim bul_x_hi  =  var180
+ dim bul_y_hi  =  var184
+ dim ebul_x_hi  =  var188
+ dim ebul_y_hi  =  var192
+ dim temp_val_hi  =  var196
+ dim ecooldown  =  var72
+ dim temp_w  =  var73
+
+
+ dim enemy_move_mask  =  var220
+ dim enemy_fire_cooldown  =  var221
+
+
+
+
+
+ dim star_x  =  var80
+ dim star_y  =  var100
+ dim star_c  =  var120
+ dim sc1  =  var140
+ dim sc2  =  var141
+ dim sc3  =  var142
+ dim cycle_state  =  var143
+
+
+
+
+ dim ex  =  var40
+ dim ey  =  var44
+ dim evx  =  var48
+ dim evy  =  var52
+ dim elife  =  var56
+
+
+ dim ex_hi  =  var74
+
+
+ dim acc_mx  =  var78
+ dim acc_my  =  var79
+
+
+ dim music_ptr_lo  =  var228
+ dim music_ptr_hi  =  var229
+
+ dim rand_val  =  var148
+
+
+
+ dim ax  =  var150
+ dim ay  =  var151
+ dim avx  =  var152
+ dim avy  =  var153
+ dim alife  =  var154
+ dim ax_hi  =  var155
+ dim ay_hi  =  var156
+
+
+ dim bul_x0  =  var18  :  dim bul_x1  =  var19  :  dim bul_x2  =  var20  :  dim bul_x3  =  var21
+ dim bul_y0  =  var22  :  dim bul_y1  =  var23  :  dim bul_y2  =  var24  :  dim bul_y3  =  var25
+ dim blife0  =  var34  :  dim blife1  =  var35  :  dim blife2  =  var36  :  dim blife3  =  var37
+
+
+ dim px_scr  =  var197
+ dim py_scr  =  var198
+ dim ex_scr  =  var199
+ dim ey_scr  =  var203
+ dim ax_scr  =  var207
+ dim ay_scr  =  var208
+ dim e_on  =  var209
+ dim a_on  =  var213
+
+
+
+
+
+
+
+
+cold_start
+
+ P0C1 = $26 :  P0C2 = $24 :  P0C3 = $04
+ P1C1 = $C2 :  P1C2 = $C6 :  P1C3 = $CA
+ P2C1 = $04 :  P2C2 = $08 :  P2C3 = $0C
+ P3C1 = $B4 :  P3C2 = $46 :  P3C3 = $1C
+ P4C1 = $08 :  P4C2 = $0C :  P4C3 = $0F
+ P5C1 = $34 :  P5C2 = $86 :  P5C3 = $0A
+ P6C1 = $42 :  P6C2 = $46 :  P6C3 = $4A
+ P7C1 = $C8 :  P7C2 = $46 :  P7C3 = $1C
+
+ BACKGRND = $00
+
+
+ enemy_move_mask  =  1
+ enemy_fire_cooldown  =  60
+
+
+ dim fighters_remaining  =  var144
+ dim player_shield  =  var145
+ dim bcd_score  =  var146
+ dim current_level  =  var222
+
+
+ dim prize_active0  =  var223
+ dim prize_active1  =  var224
+ dim prize_active2  =  var225
+ dim prize_active3  =  var226
+ dim prize_active4  =  var227
+
+
+ dim fighters_bcd  =  var157
+ dim shield_bcd  =  var158
+
+
+ dim px_hi  =  var170
+ dim py_hi  =  var171
+
+
+ dim cam_x  =  var172
+ dim cam_x_hi  =  var173
+ dim cam_y  =  var174
+ dim cam_y_hi  =  var175
+
+title_loop
+ clearscreen
+
+ alife = 0
+ for iter = 0 to 3
+ elife[iter] = 0
+ next
+
+
+ plotbanner title_screen_conv 7 0 46
+
+ plotchars 'ABCDE' 7 60 3
+
+
+ gosub PlayMusic
+
+ drawscreen
+
+ if joy0fire0 then goto init_game
+ goto title_loop
+
+init_game
+
+ gosub StopMusic
+ music_ptr_hi  =  0
+
+ px  =  60
+ px_hi  =  0
+ py  =  80
+ py_hi  =  0
+
+ cam_x  =  0  :  cam_x_hi  =  0  :  cam_y  =  0  :  cam_y_hi  =  0
+
+
+ player_lives  =  3
+
+
+ current_level  =  1
+
+
+ player_shield  =  99
+ shield_bcd  =  converttobcd ( 99 ) 
+
+ fighters_remaining  =  20
+ fighters_bcd  =  converttobcd ( 20 ) 
+
+
+ gosub set_level_config
+
+
+ prize_active0  =  1
+ prize_active1  =  1
+ prize_active2  =  1
+ prize_active3  =  1
+ prize_active4  =  1
+
+
+ cam_x  =  0  :  cam_x_hi  =  0
+ cam_y  =  0  :  cam_y_hi  =  0
+
+
+ vx_p  =  0  :  vx_m  =  0  :  acc_mx  =  0
+ vy_p  =  0  :  vy_m  =  0  :  acc_my  =  0
+
+
+ angle  =  0
+ rx  =  0
+ ry  =  0
+ temp_bx  =  0
+ temp_by  =  0
+ angle  =  0
+ rot_timer  =  0
+ shpfr  =  0
+ frame  =  0
+ bcooldown  =  0
+
+
+ for iter  =  0 to 3
+ blife[iter]  =  0
+ next
+
+ alife  =  0
+
+ eblife[0]  =  0  :  eblife[1]  =  0
+
+
+ elife[0] = 0  :  elife[1] = 0  :  elife[2] = 0  :  elife[3] = 0
+
+ gosub init_stars
+
+main_loop
+ clearscreen
+
+
+
+
+
+ frame  =  frame  +  1
+
+
+ if rot_timer  >  0 then rot_timer  =  rot_timer  -  1
+ if rot_timer  =  0 then gosub check_rotation
+ shpfr  =  angle
+
+
+ if joy0up then gosub apply_thrust
+
+
+ if bcooldown  >  0 then bcooldown  =  bcooldown  -  1
+
+ if joy0fire0  &&  bcooldown  =  0 then gosub fire_bullet
+
+
+ gosub neutralize_forces
+
+
+ gosub cycle_stars
+
+
+
+
+ temp_v  =  vx_p  -  vx_m
+
+
+
+
+
+
+
+
+
+
+ temp_v  =  vx_p  +  rx
+ rx  =  temp_v  &  63
+ temp_w  =  temp_v  /  64
+
+ if temp_w  =  0 then goto skip_pos_x
+ px  =  px  +  temp_w
+ if px  <  temp_w then px_hi  =  px_hi  +  1
+skip_pos_x
+
+
+
+ temp_v  =  vx_m  +  acc_mx
+ acc_mx  =  temp_v  &  63
+ temp_w  =  temp_v  /  64
+
+ if temp_w  =  0 then goto skip_neg_x
+ temp_v  =  px
+ px  =  px  -  temp_w
+ if px  >  temp_v then px_hi  =  px_hi  -  1
+skip_neg_x
+
+
+ if px_hi  >=  4 then px_hi  =  0
+ if px_hi  =  255 then px_hi  =  3
+
+
+
+ temp_v  =  vy_p  +  ry
+ ry  =  temp_v  &  63
+ temp_w  =  temp_v  /  64
+
+ if temp_w  =  0 then goto skip_pos_y
+ py  =  py  +  temp_w
+ if py  <  temp_w then py_hi  =  py_hi  +  1
+skip_pos_y
+
+
+ temp_v  =  vy_m  +  acc_my
+ acc_my  =  temp_v  &  63
+ temp_w  =  temp_v  /  64
+
+ if temp_w  =  0 then goto skip_neg_y
+ temp_v  =  py
+ py  =  py  -  temp_w
+ if py  >  temp_v then py_hi  =  py_hi  -  1
+skip_neg_y
+
+
+ if py_hi  >=  4 then py_hi  =  0
+ if py_hi  =  255 then py_hi  =  3
+
+
+ gosub update_bullets
+
+
+ if ecooldown  >  0 then ecooldown  =  ecooldown  -  1
+ gosub update_enemy
+
+
+ gosub update_enemy_bullets
+
+
+ gosub update_asteroid
+
+
+ gosub check_collisions
+
+
+ gosub apply_friction
+
+
+
+
+
+ gosub update_camera
+ gosub update_render_coords
+
+
+
+
+
+
+
+
+
+
+
+
+
+ if player_lives  >=  1 then plotchars 'F' 5 10 11
+ if player_lives  >=  2 then plotchars 'F' 5 20 11
+ if player_lives  >=  3 then plotchars 'F' 5 30 11
+
+
+ plotvalue scoredigits_8_wide 3 shield_bcd 2 40 0
+
+
+ plotvalue scoredigits_8_wide 5 fighters_bcd 2 104 0
+
+
+
+
+ plotchars 'ABCDE' 7 60 0
+
+
+
+
+
+
+
+
+
+
+
+ plotsprite sprite_spaceship1 5 px_scr py_scr shpfr
+
+ gosub draw_stars
+ gosub draw_player_bullets
+ gosub draw_enemies
+ if alife  >  0 then gosub draw_asteroid
+ gosub draw_enemy_bullets
+
+
+ gosub PlayMusic
+
+ drawscreen
+ goto main_loop
+
+check_rotation
+ if joy0left then angle  =  angle  -  1  :  rot_timer  =  4
+ if joy0right then angle  =  angle  +  1  :  rot_timer  =  4
+ if angle  >  250 then angle  =  15
+ if angle  >  15 then angle  =  0
+ return
+
+apply_thrust
+
+ temp_acc  =  sin_table[angle]
+ if temp_acc  <  128 then vx_p  =  vx_p  +  temp_acc
+ if temp_acc  >=  128 then temp_acc  =  0  -  temp_acc  :  vx_m  =  vx_m  +  temp_acc
+
+
+ temp_acc  =  cos_table[angle]
+ if temp_acc  <  128 then vy_m  =  vy_m  +  temp_acc
+ if temp_acc  >=  128 then temp_acc  =  0  -  temp_acc  :  vy_p  =  vy_p  +  temp_acc
+
+
+ if vx_p  >  190 then vx_p  =  190
+ if vx_m  >  190 then vx_m  =  190
+ if vy_p  >  190 then vy_p  =  190
+ if vy_m  >  190 then vy_m  =  190
+ return
+
+neutralize_forces
+
+ if vx_p  =  0  ||  vx_m  =  0 then goto skip_nx
+ if vx_p  <  vx_m then common  =  vx_p else common  =  vx_m
+ vx_p  =  vx_p  -  common
+ vx_m  =  vx_m  -  common
+skip_nx
+
+ if vy_p  =  0  ||  vy_m  =  0 then goto skip_ny
+ if vy_p  <  vy_m then common  =  vy_p else common  =  vy_m
+ vy_p  =  vy_p  -  common
+ vy_m  =  vy_m  -  common
+skip_ny
+ return
+
+apply_friction
+
+ if vx_p  <  2 then vx_p  =  0
+ if vx_p  >=  2 then vx_p  =  vx_p  -  1
+
+ if vx_m  <  2 then vx_m  =  0
+ if vx_m  >=  2 then vx_m  =  vx_m  -  1
+
+ if vy_p  <  2 then vy_p  =  0
+ if vy_p  >=  2 then vy_p  =  vy_p  -  1
+
+ if vy_m  <  2 then vy_m  =  0
+ if vy_m  >=  2 then vy_m  =  vy_m  -  1
+ return
+
+update_bullets
+ for iter  =  0 to 3
+ if blife[iter]  =  0 then goto skip_bul_move
+
+
+ temp_v  =  bul_vx[iter]
+ bul_x[iter]  =  bul_x[iter]  +  temp_v
+
+
+ if bul_x[iter]  >  170 then if bul_x[iter]  <  240 then blife[iter]  =  0
+
+
+ temp_v  =  bul_vy[iter]
+ bul_y[iter]  =  bul_y[iter]  +  temp_v
+
+
+ if bul_y[iter]  >  200 then blife[iter]  =  0
+
+
+ if blife[iter]  >  0 then blife[iter]  =  blife[iter]  -  1
+skip_bul_move
+ next
+ return
+
+
+fire_bullet
+
+ for iter  =  0 to 3
+ if blife[iter]  =  0 then goto spawn_bullet
+ next
+ return
+
+spawn_bullet
+ blife[iter]  =  60
+
+
+ temp_v  =  px  -  cam_x
+ bul_x[iter]  =  temp_v  +  7
+
+ temp_w  =  py  -  cam_y
+ bul_y[iter]  =  temp_w  +  7
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ temp_v  =  sin_table[angle]
+ if temp_v  >=  128 then temp_v  =  0  -  temp_v  :  temp_v  =  0  -  temp_v
+
+
+
+ temp_v  =  sin_table[angle]
+
+
+
+ bul_vx[iter]  =  temp_v
+
+ temp_v  =  cos_table[angle]
+
+
+
+
+
+
+
+
+ if temp_v  <  128 then bul_vy[iter]  =  0  -  temp_v
+
+ if temp_v  >=  128 then temp_v  =  0  -  temp_v  :  bul_vy[iter]  =  temp_v
+
+
+ playsfx sfx_laser 0
+
+ bcooldown  =  15
+ return
+
+update_enemy
+
+ for iter  =  0 to 3
+ if elife[iter]  =  0 then goto try_spawn_enemy
+ if elife[iter]  >  1 then goto update_explosion_state
+
+
+
+ temp_v  =  frame  &  enemy_move_mask
+ if temp_v  >  0 then goto enemy_logic_done
+
+
+ temp_v  =  ex[iter]
+ temp_w  =  ey[iter]
+
+
+ temp_acc  =  px  +  8
+ temp_acc  =  temp_acc  -  temp_v
+ if temp_acc  =  0 then goto skip_ex_move
+ if temp_acc  >=  128 then goto move_left_ex
+
+
+ temp_v  =  temp_v  +  1
+ if temp_v  =  0 then ex_hi[iter]  =  ex_hi[iter]  +  1
+ goto ex_move_done
+
+move_left_ex
+ temp_v  =  temp_v  -  1
+ if temp_v  =  255 then ex_hi[iter]  =  ex_hi[iter]  -  1
+
+skip_ex_move
+ex_move_done
+
+ if ex_hi[iter]  >=  4 then ex_hi[iter]  =  0
+ if ex_hi[iter]  =  255 then ex_hi[iter]  =  3
+
+
+ temp_acc  =  py  +  8
+ temp_acc  =  temp_acc  -  temp_w
+ if temp_acc  =  0 then goto add_wave_y
+ if temp_acc  >=  128 then temp_w  =  temp_w  -  1 else temp_w  =  temp_w  +  1
+
+add_wave_y
+
+
+ temp_acc  =  frame  +   ( iter  *  16 ) 
+ temp_acc  =  temp_acc  &  63
+
+
+
+ if temp_acc  <  32 then goto wave_up
+ temp_w  =  temp_w  +  2
+ goto skip_ey_move
+
+wave_up
+ temp_w  =  temp_w  -  2
+
+skip_ey_move
+
+ ex[iter]  =  temp_v
+ ey[iter]  =  temp_w
+
+
+ if ecooldown  >  0 then goto skip_firing_chance
+
+
+ rand_val  =  frame  +  iter
+ rand_val  =  rand_val  &  15
+ if rand_val  =  0 then gosub fire_enemy_bullet
+
+skip_firing_chance
+ goto enemy_logic_done
+
+
+
+update_explosion_state
+ elife[iter]  =  elife[iter]  -  1
+ if elife[iter]  =  1 then elife[iter]  =  0
+ goto enemy_logic_done
+
+try_spawn_enemy
+
+ rand_val  =  frame  &  127
+ if rand_val  >  5 then goto enemy_logic_done
+
+do_spawn
+
+
+ elife[iter]  =  1
+
+
+ ex_hi[iter]  =  cam_x_hi
+
+
+ temp_v  =  rand
+ if temp_v  <  128 then goto spawn_left
+ goto spawn_right
+
+spawn_left
+
+ temp_w  =  cam_x
+ temp_v  =  temp_w  -  10
+ ex[iter]  =  temp_v
+ if temp_v  >  temp_w then ex_hi[iter]  =  ex_hi[iter]  -  1
+ if ex_hi[iter]  =  255 then ex_hi[iter]  =  3
+ goto spawn_set_y
+
+spawn_right
+
+ temp_v  =  cam_x  +  170
+ ex[iter]  =  temp_v
+ if temp_v  <  170 then ex_hi[iter]  =  ex_hi[iter]  +  1
+ if ex_hi[iter]  >=  4 then ex_hi[iter]  =  0
+
+spawn_set_y
+
+ temp_v  =  rand
+ if temp_v  <  10 then temp_v  =  10
+ if temp_v  >  90 then temp_v  =  temp_v  +  80
+ ey[iter]  =  temp_v
+
+enemy_logic_done
+ next
+ return
+
+fire_enemy_bullet
+
+
+ for temp_acc  =  0 to 3
+ if eblife[temp_acc]  =  0 then goto spawn_ebul
+ next
+ return
+
+spawn_ebul
+
+
+ if e_on[iter]  =  0 then return
+
+ eblife[temp_acc]  =  120
+
+ temp_v  =  ex_scr[iter]
+ temp_w  =  ey_scr[iter]
+ ebul_x[temp_acc]  =  temp_v
+ ebul_y[temp_acc]  =  temp_w
+
+
+
+
+ temp_bx  =  px_scr  +  8
+ temp_bx  =  temp_bx  -  temp_v
+
+ if temp_bx  >=  128 then ebul_vx[temp_acc]  =  253  :  temp_bx  =  0  -  temp_bx else ebul_vx[temp_acc]  =  3
+
+ temp_by  =  py_scr  +  8
+ temp_by  =  temp_by  -  temp_w
+
+ if temp_by  >=  128 then ebul_vy[temp_acc]  =  253  :  temp_by  =  0  -  temp_by else ebul_vy[temp_acc]  =  3
+
+
+ temp_v  =  temp_bx  /  2
+ if temp_v  >  temp_by then ebul_vy[temp_acc]  =  0
+
+ temp_v  =  temp_by  /  2
+ if temp_v  >  temp_bx then ebul_vx[temp_acc]  =  0
+
+ ecooldown  =  enemy_fire_cooldown
+ return
+
+update_enemy_bullets
+ for iter  =  0 to 3
+ if eblife[iter]  =  0 then goto skip_ebul_update
+
+ eblife[iter]  =  eblife[iter]  -  1
+
+
+ temp_v  =  ebul_vx[iter]
+ if temp_v  >=  128 then goto ebul_x_neg
+
+
+ ebul_x[iter]  =  ebul_x[iter]  +  temp_v
+ goto ebul_x_done
+
+ebul_x_neg
+ temp_v  =  0  -  temp_v
+ ebul_x[iter]  =  ebul_x[iter]  -  temp_v
+
+ebul_x_done
+
+ temp_v  =  ebul_vy[iter]
+ if temp_v  >=  128 then goto ebul_y_neg
+
+
+ ebul_y[iter]  =  ebul_y[iter]  +  temp_v
+ goto ebul_y_done
+
+ebul_y_neg
+ temp_v  =  0  -  temp_v
+ ebul_y[iter]  =  ebul_y[iter]  -  temp_v
+
+ebul_y_done
+
+ temp_v  =  ebul_x[iter]
+ if temp_v  >  165 then if temp_v  <  240 then eblife[iter]  =  0
+
+ temp_v  =  ebul_y[iter]
+ if temp_v  >  200 then eblife[iter]  =  0
+
+skip_ebul_update
+ next
+ return
+
+update_asteroid
+ if alife  =  0 then gosub spawn_asteroid
+ if alife  =  0 then return
+
+
+ if  ( frame  &  3 )   >  0 then return
+
+
+ temp_v  =  avx
+ if temp_v  <  128 then goto ast_move_pos_x
+
+
+ temp_v  =  0  -  temp_v
+ temp_w  =  ax
+ ax  =  ax  -  temp_v
+ if ax  >  temp_w then ax_hi  =  ax_hi  -  1
+ goto ast_x_done
+
+ast_move_pos_x
+ ax  =  ax  +  temp_v
+ if ax  <  temp_v then ax_hi  =  ax_hi  +  1
+
+ast_x_done
+
+ if ax_hi  >=  4 then ax_hi  =  0
+ if ax_hi  =  255 then ax_hi  =  3
+
+
+ temp_v  =  avy
+ if temp_v  <  128 then goto ast_move_pos_y
+
+
+ temp_v  =  0  -  temp_v
+ temp_w  =  ay
+ ay  =  ay  -  temp_v
+ if ay  >  temp_w then ay_hi  =  ay_hi  -  1
+ goto ast_y_done
+
+ast_move_pos_y
+ ay  =  ay  +  temp_v
+ if ay  <  temp_v then ay_hi  =  ay_hi  +  1
+
+ast_y_done
+
+ if ay_hi  >=  4 then ay_hi  =  0
+ if ay_hi  =  255 then ay_hi  =  3
+
+ return
+
+spawn_asteroid
+
+ rand_val  =  frame  &  127
+ if rand_val  >  5 then return
+
+ alife  =  1
+
+ rand_val  =  frame  &  3
+ if rand_val  =  0 then ax  =  5  :  ay  =  90
+ if rand_val  =  1 then ax  =  155  :  ay  =  90
+ if rand_val  =  2 then ax  =  80  :  ay  =  5
+ if rand_val  =  3 then ax  =  80  :  ay  =  175
+
+
+ temp_v  =  ax  +  cam_x
+ ax  =  temp_v
+ ax_hi  =  cam_x_hi
+ if ax  <  cam_x then ax_hi  =  ax_hi  +  1
+ if ax_hi  >=  4 then ax_hi  =  0
+
+ temp_v  =  ay  +  cam_y
+ ay  =  temp_v
+ ay_hi  =  cam_y_hi
+ if ay  <  cam_y then ay_hi  =  ay_hi  +  1
+ if ay_hi  >=  4 then ay_hi  =  0
+
+
+
+ rand_val  =  frame  &  1
+ if rand_val  =  0 then avx  =  1 else avx  =  255
+ rand_val  =  frame  &  2
+ if rand_val  =  0 then avy  =  1 else avy  =  255
+
+ return
+
+check_collisions
+
+ for iter  =  0 to 3
+ if blife[iter]  =  0 then goto skip_bullet_coll
+
+ for temp_acc  =  0 to 3
+ if e_on[temp_acc]  =  0 then goto skip_enemy_coll
+ if elife[temp_acc]  <>  1 then goto skip_enemy_coll
+
+
+ temp_w  =  ex_scr[temp_acc]
+ temp_v  =  bul_x[iter]  -  temp_w
+ if temp_v  >=  128 then temp_v  =  0  -  temp_v
+ if temp_v  >=  5 then goto skip_enemy_coll
+
+
+ temp_w  =  ey_scr[temp_acc]
+ temp_v  =  bul_y[iter]  -  temp_w
+ if temp_v  >=  128 then temp_v  =  0  -  temp_v
+ if temp_v  >=  7 then goto skip_enemy_coll
+
+
+ blife[iter]  =  0
+ elife[temp_acc]  =  18
+
+
+ fighters_remaining  =  fighters_remaining  -  1
+ fighters_bcd  =  converttobcd ( fighters_remaining ) 
+ if fighters_remaining  <=  0 then goto level_complete
+
+ goto skip_enemy_coll
+
+skip_enemy_coll
+ next
+
+skip_bullet_coll
+ next
+
+
+ for iter  =  0 to 3
+ if e_on[iter]  =  0 then goto skip_p_e
+ if elife[iter]  <>  1 then goto skip_p_e
+
+
+ temp_v  =  px_scr  -  ex_scr[iter]
+ temp_v  =  temp_v  +  4
+ if temp_v  >=  128 then temp_v  =  0  -  temp_v
+ if temp_v  >=  11 then goto skip_p_e
+
+
+ temp_v  =  py_scr  -  ey_scr[iter]
+ if temp_v  >=  128 then temp_v  =  0  -  temp_v
+ if temp_v  >=  11 then goto skip_p_e
+
+
+ elife[iter]  =  18
+
+
+ player_shield  =  player_shield  -  2
+ shield_bcd  =  converttobcd ( player_shield ) 
+
+
+ fighters_remaining  =  fighters_remaining  -  1
+ fighters_bcd  =  converttobcd ( fighters_remaining ) 
+ if fighters_remaining  <=  0 then goto level_complete
+
+
+ if player_shield  <=  0 then goto lose_life
+
+skip_p_e
+ next
+
+
+ goto check_player_ebul
+
+check_asteroid_coll
+ if alife  =  0 then goto check_player_ebul
+
+
+ for iter  =  0 to 3
+ if blife[iter]  =  0 then goto skip_bul_ast
+ if a_on  =  0 then goto skip_bul_ast
+
+
+ temp_v  =  bul_x[iter]  -  ax_scr
+ temp_v  =  temp_v  -  8
+ if temp_v  >=  128 then temp_v  =  0  -  temp_v
+ if temp_v  >=  10 then goto skip_bul_ast
+
+
+ temp_v  =  bul_y[iter]  -  ay_scr
+ temp_v  =  temp_v  -  8
+ if temp_v  >=  128 then temp_v  =  0  -  temp_v
+ if temp_v  >=  10 then goto skip_bul_ast
+
+
+ blife[iter]  =  0
+ alife  =  0
+ goto check_player_ebul
+
+skip_bul_ast
+ next
+
+
+ if a_on  =  0 then goto check_player_ebul
+
+ temp_w  =  px_scr  -  ax_scr
+ if temp_w  >=  128 then temp_w  =  0  -  temp_w
+ if temp_w  >=  14 then goto check_player_ebul
+
+
+ temp_w  =  py_scr  -  ay_scr
+ if temp_w  >=  128 then temp_w  =  0  -  temp_w
+ if temp_w  >=  14 then goto check_player_ebul
+
+
+ alife  =  0
+
+check_player_ebul
+
+ for iter  =  0 to 3
+ if eblife[iter]  =  0 then goto skip_ebul_coll
+
+
+ temp_w  =  px_scr  -  ebul_x[iter]
+ temp_w  =  temp_w  +  7
+
+ if temp_w  >=  128 then temp_w  =  0  -  temp_w
+ if temp_w  >=  6 then goto skip_ebul_coll
+
+
+ temp_w  =  py_scr  -  ebul_y[iter]
+ temp_w  =  temp_w  +  7
+
+ if temp_w  >=  128 then temp_w  =  0  -  temp_w
+ if temp_w  >=  6 then goto skip_ebul_coll
+
+
+ eblife[iter]  =  0
+ playsfx sfx_laser 0
+
+
+ player_shield  =  player_shield  -  1
+ shield_bcd  =  converttobcd ( player_shield ) 
+ if player_shield  <=  0 then goto lose_life
+
+skip_ebul_coll
+ next
+
+coll_done
+ return
+
+init_stars
+ for iter  =  0 to 3
+
+ rand_val  =  frame  &  127  :  temp_v  =  rand_val
+ rand_val  =  frame  &  32  :  temp_v  =  temp_v  +  rand_val
+ if temp_v  >  159 then temp_v  =  159
+ star_x[iter]  =  temp_v
+
+
+ rand_val  =  frame  &  127
+ rand_val  =  rand_val  +  50
+ if rand_val  >  180 then rand_val  =  rand_val  -  100
+ star_y[iter]  =  rand_val
+
+
+ rand_val  =  frame  &  3
+ if rand_val  =  0 then rand_val  =  1
+ star_c[iter]  =  rand_val
+
+
+ frame  =  frame  +  1
+ next
+ return
+
+draw_stars
+
+ temp_v  =  star_x[0]  -  cam_x
+ if temp_v  >  165 then goto skip_s0
+ temp_w  =  star_y[0]  -  cam_y
+ if temp_w  >  200 then goto skip_s0
+ plotsprite bullet_conv 4 temp_v temp_w
+skip_s0
+ temp_v  =  star_x[1]  -  cam_x
+ if temp_v  >  165 then goto skip_s1
+ temp_w  =  star_y[1]  -  cam_y
+ if temp_w  >  200 then goto skip_s1
+ plotsprite bullet_conv 4 temp_v temp_w
+skip_s1
+ temp_v  =  star_x[2]  -  cam_x
+ if temp_v  >  165 then goto skip_s2
+ temp_w  =  star_y[2]  -  cam_y
+ if temp_w  >  200 then goto skip_s2
+ plotsprite bullet_conv 4 temp_v temp_w
+skip_s2
+ temp_v  =  star_x[3]  -  cam_x
+ if temp_v  >  165 then goto skip_s3
+ temp_w  =  star_y[3]  -  cam_y
+ if temp_w  >  200 then goto skip_s3
+ plotsprite bullet_conv 4 temp_v temp_w
+skip_s3
+ return
+
+ dim sc1  =  var140
+ dim sc2  =  var141
+ dim sc3  =  var142
+ dim cycle_state  =  var143
+
+...
+
+cycle_stars
+
+ if  ( frame  &  7 )   >  0 then return
+
+ cycle_state  =  cycle_state  +  1
+ if cycle_state  >  2 then cycle_state  =  0
+
+ if cycle_state  =  0 then P4C1 = $08 :  P4C2 = $0C :  P4C3 = $0F
+ if cycle_state  =  1 then P4C1 = $0C :  P4C2 = $0F :  P4C3 = $08
+ if cycle_state  =  2 then P4C1 = $0F :  P4C2 = $08 :  P4C3 = $0C
+ return
+
+update_camera
+
+
+
+ temp_v  =  px
+ cam_x  =  px  -  80
+ cam_x_hi  =  px_hi
+ if cam_x  >  temp_v then cam_x_hi  =  cam_x_hi  -  1
+
+
+ if cam_x_hi  =  255 then cam_x_hi  =  3
+ if cam_x_hi  >=  4 then cam_x_hi  =  0
+
+
+ temp_v  =  py
+ cam_y  =  py  -  90
+ cam_y_hi  =  py_hi
+ if cam_y  >  temp_v then cam_y_hi  =  cam_y_hi  -  1
+
+
+ if cam_y_hi  =  255 then cam_y_hi  =  3
+ if cam_y_hi  >=  4 then cam_y_hi  =  0
+
+ return
+
+update_render_coords
+
+ px_scr  =  px  -  cam_x
+ py_scr  =  py  -  cam_y
+
+
+ for iter  =  0 to 3
+ if elife[iter]  =  0 then e_on[iter]  =  0  :  goto next_r_enemy
+
+
+ if ex_hi[iter]  =  cam_x_hi then goto e_r_on_x
+ temp_val_hi  =  ex_hi[iter]  -  cam_x_hi
+ if temp_val_hi  =  3 then temp_val_hi  =  255
+ if temp_val_hi  =  253 then temp_val_hi  =  1
+ if temp_val_hi  >  1  &&  temp_val_hi  <  255 then e_on[iter]  =  0  :  goto next_r_enemy
+e_r_on_x
+ temp_v  =  ex[iter]  -  cam_x
+
+
+
+
+ if temp_v  >  167 then if temp_v  <  240 then e_on[iter]  =  0  :  goto next_r_enemy
+
+ temp_w  =  ey[iter]  -  cam_y
+
+
+
+
+ if temp_w  >  199 then if temp_w  <  240 then e_on[iter]  =  0  :  goto next_r_enemy
+
+ ex_scr[iter]  =  temp_v
+ ey_scr[iter]  =  temp_w
+ e_on[iter]  =  1
+next_r_enemy
+ next
+
+
+ if alife  =  0 then a_on  =  0  :  return
+ if ax_hi  =  cam_x_hi then goto a_r_on_x
+ temp_val_hi  =  ax_hi  -  cam_x_hi
+ if temp_val_hi  =  3 then temp_val_hi  =  255
+ if temp_val_hi  =  253 then temp_val_hi  =  1
+ if temp_val_hi  >  1  &&  temp_val_hi  <  255 then a_on  =  0  :  return
+a_r_on_x
+ temp_v  =  ax  -  cam_x
+
+
+
+
+ if temp_v  >  175 then if temp_v  <  240 then a_on  =  0  :  return
+
+ temp_w  =  ay  -  cam_y
+
+
+
+
+ if temp_w  >  207 then if temp_w  <  240 then a_on  =  0  :  return
+
+ ax_scr  =  temp_v
+ ay_scr  =  temp_w
+ a_on  =  1
+ return
+
+
+
+
+
+
+
+ return
+
+
+
+ data sin_table
+   0, 2, 3, 4, 4, 4, 3, 2, 0, 254, 253, 252, 252, 252, 253, 254
+end
+
+ data cos_table
+   6, 6, 4, 2, 0, 254, 252, 250, 250, 250, 252, 254, 0, 2, 4, 6
+end
+
+ data sfx_laser
+   16, 1, 4 ; version, priority, frames per chunk
+   $18,$02,$06 ; freq, channel, volume
+   $15,$02,$06
+   $12,$02,$06
+   $00,$00,$00
+end
+
+draw_player_bullets
+ for iter  =  0 to 3
+ if blife[iter]  =  0 then goto skip_draw_bul
+
+
+ temp_v  =  bul_x[iter]
+ temp_w  =  bul_y[iter]
+
+
+ if temp_v  >  165 then if temp_v  <  240 then goto skip_draw_bul
+ if temp_w  >  200 then goto skip_draw_bul
+
+ plotsprite bullet_conv 1 temp_v temp_w
+
+skip_draw_bul
+ next
+ return
+draw_enemy_bullets
+ for iter  =  0 to 3
+ if eblife[iter]  =  0 then goto skip_draw_ebul
+
+ temp_v  =  ebul_x[iter]
+ temp_w  =  ebul_y[iter]
+ plotsprite bullet_conv 6 temp_v temp_w
+
+skip_draw_ebul
+ next
+ return
+draw_enemies
+
+ for iter  =  0 to 3
+ if e_on[iter]  =  0 then goto skip_draw_enemy
+ temp_v  =  ex_scr[iter]
+ temp_w  =  ey_scr[iter]
+ if elife[iter]  >  1 then goto draw_explosion
+ plotsprite fighter_conv 3 temp_v temp_w
+ goto skip_draw_enemy
+
+draw_explosion
+
+ temp_acc  =  18  -  elife[iter]
+ temp_acc  =  temp_acc  /  2
+ if temp_acc  >  7 then temp_acc  =  7
+
+ plotsprite fighter_explode_00_conv 3 temp_v temp_w temp_acc
+
+skip_draw_enemy
+ next
+ return
+
+draw_asteroid
+ if a_on  =  0 then return
+ plotsprite asteroid_M_conv 2 ax_scr ay_scr
+ return
+
+
+level_complete
+
+ gosub StopMusic
+ clearscreen
+ BACKGRND = $B4
+
+ temp_v  =  converttobcd ( current_level ) 
+ plotvalue scoredigits_8_wide 7 temp_v 1 75 88
+ drawscreen
+
+
+level_complete_release
+ if joy0fire0 then goto level_complete_release
+
+
+level_complete_wait
+ if !joy0fire0 then goto level_complete_wait
+
+
+ current_level  =  current_level  +  1
+ if current_level  >  5 then goto you_win_game
+
+
+ temp_v  =  50  -   ( current_level  *  10 ) 
+ if temp_v  <  0 then temp_v  =  0
+ player_shield  =  player_shield  +  temp_v
+ if player_shield  >  99 then player_shield  =  99
+ shield_bcd  =  converttobcd ( player_shield ) 
+
+ BACKGRND = $00
+ goto init_level
+
+lose_life
+
+ player_lives  =  player_lives  -  1
+ if player_lives  <=  0 then goto you_lose
+
+
+ BACKGRND = $44
+ clearscreen
+ drawscreen
+
+
+ temp_v  =  0
+lose_life_pause
+ temp_v  =  temp_v  +  1
+ if temp_v  <  60 then goto lose_life_pause
+
+ BACKGRND = $00
+ goto restart_level
+
+restart_level
+
+ player_shield  =  99
+ shield_bcd  =  converttobcd ( 99 ) 
+
+
+ gosub set_level_fighters
+ fighters_bcd  =  converttobcd ( fighters_remaining ) 
+
+
+ prize_active0  =  1
+ prize_active1  =  1
+ prize_active2  =  1
+ prize_active3  =  1
+ prize_active4  =  1
+
+
+ px  =  60  :  py  =  80
+ px_hi  =  0  :  py_hi  =  0
+ cam_x  =  0  :  cam_x_hi  =  0
+ cam_y  =  0  :  cam_y_hi  =  0
+
+
+ for iter  =  0 to 3
+ elife[iter]  =  0
+ next
+
+
+ alife  =  0
+
+ goto main_loop
+
+init_level
+
+ gosub set_level_fighters
+ fighters_bcd  =  converttobcd ( fighters_remaining ) 
+
+
+ gosub set_level_config
+
+
+ prize_active0  =  1
+ prize_active1  =  1
+ prize_active2  =  1
+ prize_active3  =  1
+ prize_active4  =  1
+
+ goto restart_level
+
+set_level_fighters
+
+ if current_level  =  1 then fighters_remaining  =  20
+ if current_level  =  2 then fighters_remaining  =  40
+ if current_level  =  3 then fighters_remaining  =  60
+ if current_level  =  4 then fighters_remaining  =  80
+ if current_level  >=  5 then fighters_remaining  =  99
+ return
+
+set_level_config
+
+
+
+
+
+
+
+
+
+ if current_level  =  1 then enemy_move_mask  =  1  :  enemy_fire_cooldown  =  60
+ if current_level  =  2 then enemy_move_mask  =  1  :  enemy_fire_cooldown  =  45
+ if current_level  =  3 then enemy_move_mask  =  0  :  enemy_fire_cooldown  =  30
+ if current_level  =  4 then enemy_move_mask  =  0  :  enemy_fire_cooldown  =  25
+ if current_level  >=  5 then enemy_move_mask  =  0  :  enemy_fire_cooldown  =  20
+ return
+
+you_win_game
+
+ osub StopMusicg
+ clearscreen
+ BACKGRND = $B4
+
+ drawscreen
+
+you_win_release
+ if joy0fire0 then goto you_win_release
+
+
+you_win_wait
+ if !joy0fire0 then goto you_win_wait
+ goto cold_start
+
+loose_life_check
+
+ goto lose_life
+
+round_reset
+
+ goto restart_level
+
+you_lose
+
+ gosub StopMusic
+ clearscreen
+ BACKGRND = $44
+ drawscreen
+
+you_lose_release
+ if joy0fire0 then goto you_lose_release
+
+
+you_lose_wait
+ if !joy0fire0 then goto you_lose_wait
+ goto cold_start
+
+
+
+
+
+StopMusic
+ asm
+   lda #0
+   sta $0451 ; AUDC1
+   sta $0453 ; AUDC2
+   sta $0455 ; AUDC3
+   sta $0457 ; AUDC4
+end
+ return
+
+PlayMusic
+ asm
+   ; Check if initialized (high byte != 0)
+   lda music_ptr_hi
+   bne .SetupPtr
+   ; Initialize pointer to Start of Song
+   lda #<MusicData
+   sta music_ptr_lo
+   lda #>MusicData
+   sta music_ptr_hi
+
+.SetupPtr:
+   ; Copy persistent pointer to ZP for indirect access
+   lda music_ptr_lo
+   sta temp1
+   lda music_ptr_hi
+   sta temp2
+
+   ; Process Frame
+   ldy #0
+.Loop:
+   lda (temp1),y
+   cmp #$FF       ; End of Frame?
+   beq .EndFrame
+   cmp #$FE       ; End of Song?
+   beq .EndSong
+   
+   ; It is a Register Address
+   tax            ; X = Register
+   iny
+   lda (temp1),y  ; A = Value
+   sta $0450,x    ; Write to POKEY
+   iny
+   bne .Loop      ; Safety branch (though 0xFF should catch it)
+
+.EndFrame:
+   ; Advance pointer past the 0xFF
+   iny
+   tya
+   clc
+   adc music_ptr_lo
+   sta music_ptr_lo
+   lda music_ptr_hi
+   adc #0
+   sta music_ptr_hi
+   rts
+
+.EndSong:
+   ; Reset pointer to Start
+   lda #<MusicData
+   sta music_ptr_lo
+   lda #>MusicData
+   sta music_ptr_hi
+   rts
+end
+
+
+ asm
+MusicData:
+   incbin "../music/Song_01.bin"
+end

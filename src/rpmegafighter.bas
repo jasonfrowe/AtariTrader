@@ -1,5 +1,6 @@
    displaymode 160A
    set doublewide on
+   set pokeysupport on
  
    ; Import graphics
    incgraphic sprite_spaceship1.png
@@ -127,6 +128,10 @@
    ; Physics Accumulators (Dedicated)
    dim acc_mx = var78
    dim acc_my = var79
+
+   ; Music State (Safe Zone per MEMORY_MAP)
+   dim music_ptr_lo = var228
+   dim music_ptr_hi = var229
    
    dim rand_val = var148
    
@@ -219,12 +224,18 @@ title_loop
     ; characterset scoredigits_8_wide
     plotchars 'ABCDE' 7 60 3
     
+    ; Play Music
+    gosub PlayMusic
+    
     drawscreen
     
     if joy0fire0 then goto init_game
     goto title_loop
 
 init_game
+     ; Stop title music
+     gosub StopMusic
+     music_ptr_hi = 0 ; Force reset on next PlayMusic call
      ; Initialize Variables (Reset)
      px = 60             ; Low byte (0-255)
      px_hi = 0
@@ -453,6 +464,9 @@ skip_neg_y
     gosub draw_enemies
     if alife > 0 then gosub draw_asteroid
     gosub draw_enemy_bullets
+    
+    ; Update Music
+    gosub PlayMusic
  
     drawscreen
    goto main_loop
@@ -1291,6 +1305,7 @@ draw_asteroid
 
 level_complete
    ; All fighters destroyed - level won!
+   gosub StopMusic
    clearscreen
    BACKGRND=$B4  ; Green = victory
    ; Display level number
@@ -1416,6 +1431,7 @@ set_level_config
 
 you_win_game
    ; Won all levels!
+   osub StopMusicg
    clearscreen
    BACKGRND=$B4  ; Green = victory
    ; Flash celebration
@@ -1439,6 +1455,7 @@ round_reset
 
 you_lose
    ; Game Over - no lives left
+   gosub StopMusic
    clearscreen
    BACKGRND=$44  ; Red = game over
    drawscreen
@@ -1450,3 +1467,79 @@ you_lose_release
 you_lose_wait
    if !joy0fire0 then goto you_lose_wait
    goto cold_start
+
+   ; ============================================
+   ; POKEY VGM Register Stream Driver (ASM)
+   ; ============================================
+
+StopMusic
+   asm
+   lda #0
+   sta $0451 ; AUDC1
+   sta $0453 ; AUDC2
+   sta $0455 ; AUDC3
+   sta $0457 ; AUDC4
+end
+   return
+
+PlayMusic
+   asm
+   ; Check if initialized (high byte != 0)
+   lda music_ptr_hi
+   bne .SetupPtr
+   ; Initialize pointer to Start of Song
+   lda #<MusicData
+   sta music_ptr_lo
+   lda #>MusicData
+   sta music_ptr_hi
+
+.SetupPtr:
+   ; Copy persistent pointer to ZP for indirect access
+   lda music_ptr_lo
+   sta temp1
+   lda music_ptr_hi
+   sta temp2
+
+   ; Process Frame
+   ldy #0
+.Loop:
+   lda (temp1),y
+   cmp #$FF       ; End of Frame?
+   beq .EndFrame
+   cmp #$FE       ; End of Song?
+   beq .EndSong
+   
+   ; It is a Register Address
+   tax            ; X = Register
+   iny
+   lda (temp1),y  ; A = Value
+   sta $0450,x    ; Write to POKEY
+   iny
+   bne .Loop      ; Safety branch (though 0xFF should catch it)
+
+.EndFrame:
+   ; Advance pointer past the 0xFF
+   iny
+   tya
+   clc
+   adc music_ptr_lo
+   sta music_ptr_lo
+   lda music_ptr_hi
+   adc #0
+   sta music_ptr_hi
+   rts
+
+.EndSong:
+   ; Reset pointer to Start
+   lda #<MusicData
+   sta music_ptr_lo
+   lda #>MusicData
+   sta music_ptr_hi
+   rts
+end
+
+   ; Music Data Blob
+   asm
+MusicData:
+   incbin "../music/Song_01.bin"
+end

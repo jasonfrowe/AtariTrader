@@ -194,6 +194,10 @@ ax = var150
  
 rand_val = var148
  
+music_ptr_hi = var229
+ 
+music_ptr_lo = var228
+ 
 acc_my = var79
  
 acc_mx = var78
@@ -4731,5 +4735,7 @@ sprite_spaceship1_color3 = $1e
 sprite_spaceship1_color2 = $81
 sprite_spaceship1_color1 = $44
 sprite_spaceship1_color0 = $00
+pokeysupport = 1
+pokeysupport = 1
 DOUBLEWIDE = 1
 collisionwrap = 1
