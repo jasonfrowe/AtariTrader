@@ -373,9 +373,9 @@ skip_pos_x
       if px > temp_v then px_hi = px_hi - 1
 skip_neg_x
 
-   ; Wrap X (World: 8 * 256 = 2048)
-   if px_hi >= 8 then px_hi = 0
-   if px_hi = 255 then px_hi = 7
+   ; Wrap X
+   if px_hi >= 4 then px_hi = 0
+   if px_hi = 255 then px_hi = 3
    
    ; Y Axis
    ; Positive (Down)
@@ -399,9 +399,9 @@ skip_pos_y
       if py > temp_v then py_hi = py_hi - 1
 skip_neg_y
 
-   ; Wrap Y (World: 8 * 256 = 2048)
-   if py_hi >= 8 then py_hi = 0
-   if py_hi = 255 then py_hi = 7
+   ; Wrap Y
+   if py_hi >= 4 then py_hi = 0
+   if py_hi = 255 then py_hi = 3
 
    ; ---- Bullet Update ----
    gosub update_bullets
@@ -695,9 +695,9 @@ apply_neg_x
        ex[iter] = ex[iter] - temp_w
        if ex[iter] > temp_acc then ex_hi[iter] = ex_hi[iter] - 1
 apply_x_done
-       ; Wrap World X (8 segments)
-       if ex_hi[iter] >= 8 then ex_hi[iter] = 0
-       if ex_hi[iter] = 255 then ex_hi[iter] = 7
+       ; Wrap World X
+       if ex_hi[iter] >= 4 then ex_hi[iter] = 0
+       if ex_hi[iter] = 255 then ex_hi[iter] = 3
 
        ; Apply Velocity Y
        temp_v = evy[iter]
@@ -886,9 +886,9 @@ ast_move_pos_x
    if ax < temp_v then ax_hi = ax_hi + 1
 
 ast_x_done
-   ; Wrap X (0-7, 8 segments)
-   if ax_hi >= 8 then ax_hi = 0
-   if ax_hi = 255 then ax_hi = 7
+   ; Wrap X (0-3)
+   if ax_hi >= 4 then ax_hi = 0
+   if ax_hi = 255 then ax_hi = 3
 
    ; Y Axis
    temp_v = avy
@@ -906,9 +906,9 @@ ast_move_pos_y
    if ay < temp_v then ay_hi = ay_hi + 1
 
 ast_y_done
-   ; Wrap Y (0-7, 8 segments)
-   if ay_hi >= 8 then ay_hi = 0
-   if ay_hi = 255 then ay_hi = 7
+   ; Wrap Y (0-3)
+   if ay_hi >= 4 then ay_hi = 0
+   if ay_hi = 255 then ay_hi = 3
    
    return
 
@@ -1176,9 +1176,9 @@ update_camera
    cam_x_hi = px_hi
    if cam_x > temp_v then cam_x_hi = cam_x_hi - 1 ; Borrow
    
-   ; Wrap Cam X (World: 8 * 256)
-   if cam_x_hi = 255 then cam_x_hi = 7
-   if cam_x_hi >= 8 then cam_x_hi = 0
+   ; Wrap Cam X
+   if cam_x_hi = 255 then cam_x_hi = 3
+   if cam_x_hi >= 4 then cam_x_hi = 0
 
    ; cam_y = py - 90
    temp_v = py
@@ -1186,9 +1186,9 @@ update_camera
    cam_y_hi = py_hi
    if cam_y > temp_v then cam_y_hi = cam_y_hi - 1
    
-   ; Wrap Cam Y (World: 8 * 256)
-   if cam_y_hi = 255 then cam_y_hi = 7
-   if cam_y_hi >= 8 then cam_y_hi = 0
+   ; Wrap Cam Y
+   if cam_y_hi = 255 then cam_y_hi = 3
+   if cam_y_hi >= 4 then cam_y_hi = 0
    
    return
 
@@ -1201,10 +1201,12 @@ update_render_coords
    for iter = 0 to 3
       if elife[iter] = 0 then e_on[iter] = 0 : goto next_r_enemy
       
-      ; High Byte Visibility Check (8-segment world: visible if diff is 0, 1, or 7)
+      ; High Byte Visibility Check
       if ex_hi[iter] = cam_x_hi then goto e_r_on_x
       temp_val_hi = ex_hi[iter] - cam_x_hi
-      if temp_val_hi > 1 && temp_val_hi < 7 then e_on[iter] = 0 : goto next_r_enemy
+      if temp_val_hi = 3 then temp_val_hi = 255
+      if temp_val_hi = 253 then temp_val_hi = 1
+      if temp_val_hi > 1 && temp_val_hi < 255 then e_on[iter] = 0 : goto next_r_enemy
 e_r_on_x
       temp_v = ex[iter] - cam_x
       ; Screen is 160 wide, enemy is ~8 wide
@@ -1230,7 +1232,9 @@ next_r_enemy
    if alife = 0 then a_on = 0 : return
    if ax_hi = cam_x_hi then goto a_r_on_x
    temp_val_hi = ax_hi - cam_x_hi
-   if temp_val_hi > 1 && temp_val_hi < 7 then a_on = 0 : return
+   if temp_val_hi = 3 then temp_val_hi = 255
+   if temp_val_hi = 253 then temp_val_hi = 1
+   if temp_val_hi > 1 && temp_val_hi < 255 then a_on = 0 : return
 a_r_on_x
    temp_v = ax - cam_x
    ; Screen is 160 wide, asteroid is ~16 wide
@@ -1239,11 +1243,6 @@ a_r_on_x
    ; Cull range: 176-239
    if temp_v > 175 then if temp_v < 240 then a_on = 0 : return
    
-   ; Y Axis High-Byte Check (8-segment world: visible if diff is 0, 1, or 7)
-   if ay_hi = cam_y_hi then goto a_r_on_y
-   temp_val_hi = ay_hi - cam_y_hi
-   if temp_val_hi > 1 && temp_val_hi < 7 then a_on = 0 : return
-a_r_on_y
    temp_w = ay - cam_y
    ; Screen is 192 high, asteroid is ~16 high
    ; Valid range: 0-207 (screen + margin)
@@ -1342,7 +1341,7 @@ level_complete
    ; All fighters destroyed - level won!
    gosub StopMusic
    clearscreen
-   BACKGRND=$00  ; Black (was Green)
+   BACKGRND=$B4  ; Green = victory
    ; Display level number
    temp_v = converttobcd(current_level)
    plotvalue scoredigits_8_wide 7 temp_v 1 75 88
@@ -1474,7 +1473,7 @@ you_win_game
    ; Won all levels!
    gosub StopMusic
    clearscreen
-   BACKGRND=$00  ; Black (was Green)
+   BACKGRND=$B4  ; Green = victory
    ; Flash celebration
    drawscreen
    ; Wait for button release first
@@ -1502,7 +1501,7 @@ you_lose
    ; Game Over - no lives left
    gosub StopMusic
    clearscreen
-   BACKGRND=$00  ; Black (was Red)
+   BACKGRND=$44  ; Red = game over
    drawscreen
    ; Wait for button release first
 you_lose_release
@@ -1564,9 +1563,9 @@ PlayMusic
    lda (temp1),y  ; A = Value
    sta $0450,x    ; Write to POKEY
    iny
-   cpy #64        ; Safety: Prevent infinite processing (Max 64 bytes/frame)
+   cpy #64        ; Prevent infinite processing
    bcs .EndFrame  ; Force exit if too many bytes
-   bne .Loop      ; Continue if not 0
+   bne .Loop      ; Safety branch (though 0xFF should catch it)
 
 .EndFrame:
    ; Advance pointer past the 0xFF
