@@ -69,9 +69,7 @@ function(add_7800basic_target TARGET_NAME SOURCE_FILE)
 endfunction()
 
 # Add main game target
-if(EXISTS ${CMAKE_SOURCE_DIR}/src/main.bas)
-    add_7800basic_target(AtariTrader_main src/main.bas)
-endif()
+# (Removed - Legacy moved to archive)
 
 # Add rpmegafighter target
 if(EXISTS ${CMAKE_SOURCE_DIR}/src/rpmegafighter.bas)
@@ -79,11 +77,7 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/src/rpmegafighter.bas)
 endif()
 
 # Add sample programs
-file(GLOB SAMPLE_FILES "${CMAKE_SOURCE_DIR}/samples/*.bas")
-foreach(SAMPLE_FILE ${SAMPLE_FILES})
-    get_filename_component(SAMPLE_NAME ${SAMPLE_FILE} NAME_WE)
-    add_7800basic_target(sample_${SAMPLE_NAME} samples/${SAMPLE_NAME}.bas)
-endforeach()
+# (Removed - Samples are reference only)
 
 # Custom target to clean 7800basic generated files
 add_custom_target(clean-7800

@@ -3,41 +3,41 @@
    set pokeysupport on
  
    ; Import graphics
-   incgraphic sprite_spaceship1.png
-   incgraphic sprite_spaceship2.png
-   incgraphic sprite_spaceship3.png
-   incgraphic sprite_spaceship4.png
-   incgraphic sprite_spaceship5.png
-   incgraphic sprite_spaceship6.png
-   incgraphic sprite_spaceship7.png
-   incgraphic sprite_spaceship8.png
-   incgraphic sprite_spaceship9.png
-   incgraphic sprite_spaceship10.png
-   incgraphic sprite_spaceship11.png
-   incgraphic sprite_spaceship12.png
-   incgraphic sprite_spaceship13.png
-   incgraphic sprite_spaceship14.png
-   incgraphic sprite_spaceship15.png
-   incgraphic sprite_spaceship16.png
+   incgraphic graphics/sprite_spaceship1.png
+   incgraphic graphics/sprite_spaceship2.png
+   incgraphic graphics/sprite_spaceship3.png
+   incgraphic graphics/sprite_spaceship4.png
+   incgraphic graphics/sprite_spaceship5.png
+   incgraphic graphics/sprite_spaceship6.png
+   incgraphic graphics/sprite_spaceship7.png
+   incgraphic graphics/sprite_spaceship8.png
+   incgraphic graphics/sprite_spaceship9.png
+   incgraphic graphics/sprite_spaceship10.png
+   incgraphic graphics/sprite_spaceship11.png
+   incgraphic graphics/sprite_spaceship12.png
+   incgraphic graphics/sprite_spaceship13.png
+   incgraphic graphics/sprite_spaceship14.png
+   incgraphic graphics/sprite_spaceship15.png
+   incgraphic graphics/sprite_spaceship16.png
    
-   incgraphic bullet_conv.png
-   incgraphic fighter_conv.png
+   incgraphic graphics/bullet_conv.png
+   incgraphic graphics/fighter_conv.png
    ; Explosion Frames (Split for animation)
-   incgraphic fighter_explode_00_conv.png
-   incgraphic fighter_explode_01_conv.png
-   incgraphic fighter_explode_02_conv.png
-   incgraphic fighter_explode_03_conv.png
-   incgraphic fighter_explode_04_conv.png
-   incgraphic fighter_explode_05_conv.png
-   incgraphic fighter_explode_06_conv.png
-   incgraphic fighter_explode_07_conv.png
-   incbanner title_screen_conv.png 160A 0 1 2 3
+   incgraphic graphics/fighter_explode_00_conv.png
+   incgraphic graphics/fighter_explode_01_conv.png
+   incgraphic graphics/fighter_explode_02_conv.png
+   incgraphic graphics/fighter_explode_03_conv.png
+   incgraphic graphics/fighter_explode_04_conv.png
+   incgraphic graphics/fighter_explode_05_conv.png
+   incgraphic graphics/fighter_explode_06_conv.png
+   incgraphic graphics/fighter_explode_07_conv.png
+   incbanner graphics/title_screen_conv.png 160A 0 1 2 3
    
-   incgraphic asteroid_M_conv.png
+   incgraphic graphics/asteroid_M_conv.png
    
    ; Define custom mapping for scoredigits (0-9 + A-F)
    alphachars '0123456789ABCDEF'
-   incgraphic scoredigits_8_wide.png 160A
+   incgraphic graphics/scoredigits_8_wide.png 160A
    
    characterset scoredigits_8_wide
 
@@ -1779,6 +1779,6 @@ end
    ; Music Data Blob
    asm
 MusicData:
-   incbin "../music/Song_01.bin"
+   incbin "music/Song_01.bin"
    .byte $FE ; Safety Terminator (Loop Song)
 end
