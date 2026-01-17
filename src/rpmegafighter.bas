@@ -124,6 +124,7 @@
    
    ; High Byte Arrays for Enemies (World Support)
    dim ex_hi = var74 ; 74,75,76,77 (Using Buffer)
+   dim ey_hi = var130 ; 130,131,132,133
    
    ; Physics Accumulators (Dedicated)
    dim acc_mx = var78
@@ -634,56 +635,83 @@ update_enemy
        temp_v = frame & enemy_move_mask
        if temp_v > 0 then goto enemy_logic_done
        
-       ; Chase Logic using temp vars
-       temp_v = ex[iter]
-       temp_w = ey[iter]
+       ; --- Inertia Logic (Strategy A) ---
+       ; --- Inertia Logic (Strategy A + Squad Formation + Rotation) ---
+       ; Calculate Circular Target Index (Changes every ~2s)
+       temp_v = frame / 128
+       temp_v = temp_v + iter
+       temp_v = temp_v & 3
        
-       ; Wrap Safe Chase Logic (X)
-       temp_acc = px + 8 ; Center
-       temp_acc = temp_acc - temp_v
-       if temp_acc = 0 then goto skip_ex_move
-       if temp_acc >= 128 then goto move_left_ex
+       ; Gray Code for Circular Path (0->1->3->2 : TL->TR->BR->BL)
+       temp_acc = temp_v / 2
+       temp_v = temp_v ^ temp_acc
+       rand_val = temp_v ; Store Target Index in temp var
        
-       ; Move Right
-       temp_v = temp_v + 1
-       if temp_v = 0 then ex_hi[iter] = ex_hi[iter] + 1 ; Wrap Up
-       goto ex_move_done
+       ; Calculate Target X with Offset using Target Index
+       temp_w = px
+       temp_v = rand_val & 1
+       if temp_v > 0 then temp_w = temp_w + 30 else temp_w = temp_w - 30
+       
+       temp_acc = temp_w - ex[iter]
+       
+       ; Accelerate every 4th frame (mask 3)
+       if (frame & 3) > 0 then goto skip_accel
+       
+       ; X Acceleration
+       if temp_acc >= 128 then goto want_left
+       ; Want Right (Accel Pos < 3 OR Brake Neg >= 253)
+       if evx[iter] < 3 || evx[iter] >= 253 then evx[iter] = evx[iter] + 1
+       goto check_y_accel
+want_left
+       ; Want Left (Accel Neg > 253 OR Brake Pos/Zero <= 3)
+       if evx[iter] > 253 || evx[iter] <= 3 then evx[iter] = evx[iter] - 1
 
-move_left_ex
-       temp_v = temp_v - 1
-       if temp_v = 255 then ex_hi[iter] = ex_hi[iter] - 1 ; Wrap Down
+check_y_accel
+       ; Y Acceleration with Offset using Target Index (Corrected for Aspect Ratio)
+       temp_w = py
+       temp_v = rand_val & 2
+       if temp_v > 0 then temp_w = temp_w + 55 else temp_w = temp_w - 55
+       
+       temp_acc = temp_w - ey[iter]
+       if temp_acc >= 128 then goto want_up
+       ; Want Down (Pos Y)
+       if evy[iter] < 3 || evy[iter] >= 253 then evy[iter] = evy[iter] + 1
+       goto skip_accel
+want_up
+       ; Want Up (Neg Y)
+       if evy[iter] > 253 || evy[iter] <= 3 then evy[iter] = evy[iter] - 1
 
-skip_ex_move
-ex_move_done
+skip_accel
+       ; Apply Velocity X
+       temp_v = evx[iter]
+       if temp_v >= 128 then goto apply_neg_x
+       ; Pos
+       ex[iter] = ex[iter] + temp_v
+       if ex[iter] < temp_v then ex_hi[iter] = ex_hi[iter] + 1
+       goto apply_x_done
+apply_neg_x
+       temp_w = 0 - temp_v
+       temp_acc = ex[iter]
+       ex[iter] = ex[iter] - temp_w
+       if ex[iter] > temp_acc then ex_hi[iter] = ex_hi[iter] - 1
+apply_x_done
        ; Wrap World X
        if ex_hi[iter] >= 4 then ex_hi[iter] = 0
        if ex_hi[iter] = 255 then ex_hi[iter] = 3
 
-       ; Wrap Safe Chase Logic (Y) with wave pattern
-       temp_acc = py + 8 ; Center
-       temp_acc = temp_acc - temp_w
-       if temp_acc = 0 then goto add_wave_y
-       if temp_acc >= 128 then temp_w = temp_w - 1 else temp_w = temp_w + 1
-
-add_wave_y
-       ; Add wave oscillation to Y movement
-       ; Use frame counter + iter offset for wave pattern
-       temp_acc = frame + (iter * 16)
-       temp_acc = temp_acc & 63
-       
-       ; Create wave: 0-31 go up, 32-63 go down (slower wave)
-       ; Move 2 pixels for larger amplitude
-       if temp_acc < 32 then goto wave_up
-       temp_w = temp_w + 2
-       goto skip_ey_move
-
-wave_up
-       temp_w = temp_w - 2
-
-skip_ey_move
-       
-       ex[iter] = temp_v
-       ey[iter] = temp_w
+       ; Apply Velocity Y
+       temp_v = evy[iter]
+       if temp_v >= 128 then goto apply_neg_y
+       ; Pos
+       ey[iter] = ey[iter] + temp_v
+       if ey[iter] < temp_v then ey_hi[iter] = ey_hi[iter] + 1
+       goto apply_y_done
+apply_neg_y
+       temp_w = 0 - temp_v
+       temp_acc = ey[iter]
+       ey[iter] = ey[iter] - temp_w
+       if ey[iter] > temp_acc then ey_hi[iter] = ey_hi[iter] - 1
+apply_y_done
        
        ; Firing Chance (Global Cooldown)
        if ecooldown > 0 then goto skip_firing_chance
@@ -712,6 +740,7 @@ do_spawn
        
        ; Spawn logic inline
        elife[iter] = 1
+       evx[iter] = 0 : evy[iter] = 0 ; Reset velocity
        
        ; Set High Byte to Camera High Byte (Spawn locally initially)
        ex_hi[iter] = cam_x_hi
