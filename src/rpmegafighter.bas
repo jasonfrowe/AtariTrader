@@ -1174,13 +1174,13 @@ skip_bul_ast
    shield_bcd = converttobcd(player_shield)
    if player_shield <= 0 then goto coll_done
    
-   ; 2. Bounce Logic
+   ; 2. Bounce Logic (Large bounce to avoid multiple collisions)
    ; If Player is Left of Ast (temp_w < 0 -> >128), Bounce Left.
    ; px_scr < ax_scr -> temp_w is "negative" (high byte)
-   if temp_w >= 128 then vx_m = 64 : vx_p = 0 else vx_p = 64 : vx_m = 0
+   if temp_w >= 128 then vx_m = 128 : vx_p = 0 else vx_p = 128 : vx_m = 0
    
    ; Y Bounce
-   if temp_acc >= 128 then vy_m = 64 : vy_p = 0 else vy_p = 64 : vy_m = 0
+   if temp_acc >= 128 then vy_m = 128 : vy_p = 0 else vy_p = 128 : vy_m = 0
    
    ; Sound Effect?
    
