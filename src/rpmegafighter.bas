@@ -101,6 +101,9 @@
    dim enemy_move_mask = $25A2     ; Frame mask for enemy movement speed
    dim enemy_fire_cooldown = $25A3 ; Cooldown frames after enemy fires
    
+   dim asteroid_move_mask = $25AD
+   dim asteroid_base_speed = $25AE
+   
    ; Safety Buffer 76-79
    
    ; Starfield Variables (20 stars)
@@ -134,6 +137,11 @@
    dim music_active = $25AC ; 0=Stopped, 1=Playing
    dim music_ptr_lo = $25AA
    dim music_ptr_hi = $25AB
+   
+   
+   ; ASM Driver uses dedicated ZP vars stolen from star array (unused slots)
+   dim music_zp_lo = var98
+   dim music_zp_hi = var99
    
    dim rand_val = $254C
    dim screen_timer = $254D ; Generic timeout timer
@@ -187,7 +195,12 @@ cold_start
    
    ; Initialize difficulty settings (will be overridden by set_level_config)
    enemy_move_mask = 1        ; Default: slow movement
-   enemy_fire_cooldown = 60   ; Default: slow fire
+   enemy_fire_cooldown = 60
+   
+   asteroid_move_mask = 3
+   asteroid_base_speed = 1
+   
+   ; Sound channelst: slow fire
 
    ; Game State Variables
    dim fighters_remaining = $2548  ; Enemies left to destroy (was score_p)
@@ -392,6 +405,9 @@ main_loop
 
    ; ---- Collisions ----
    gosub check_collisions
+   ; Check for Game State Changes (Stack Safe)
+   if fighters_remaining <= 0 then goto level_complete
+   if player_shield <= 0 then goto lose_life
 
    ; ---- Friction ----
    gosub apply_friction
@@ -678,12 +694,14 @@ do_x_accel
        
        ; X Acceleration
        if temp_acc >= 128 then goto want_left
-       ; Want Right (Accel Pos < 3 OR Brake Neg >= 253)
-       if evx[iter] < 3 || evx[iter] >= 253 then evx[iter] = evx[iter] + 1
+       ; Want Right (Target +3)
+       ; Increment if < 3 OR Negative (>128)
+       if evx[iter] < 3 || evx[iter] > 128 then evx[iter] = evx[iter] + 1
        goto check_y_accel
 want_left
-       ; Want Left (Accel Neg > 253 OR Brake Pos/Zero <= 3)
-       if evx[iter] > 253 || evx[iter] <= 3 then evx[iter] = evx[iter] - 1
+       ; Want Left (Target -3 ie 253)
+       ; Decrement if > 253 OR Positive (<128)
+       if evx[iter] > 253 || evx[iter] < 128 then evx[iter] = evx[iter] - 1
 
 check_y_accel
        ; Y Acceleration with Offset using Target Index (16-bit aware)
@@ -717,12 +735,14 @@ same_y_segment
        
 do_y_accel
        if temp_acc >= 128 then goto want_up
-       ; Want Down (Pos Y)
-       if evy[iter] < 3 || evy[iter] >= 253 then evy[iter] = evy[iter] + 1
+       ; Want Down (Target +3)
+       ; Increment if < 3 OR Negative (>128)
+       if evy[iter] < 3 || evy[iter] > 128 then evy[iter] = evy[iter] + 1
        goto skip_accel
 want_up
-       ; Want Up (Neg Y)
-       if evy[iter] > 253 || evy[iter] <= 3 then evy[iter] = evy[iter] - 1
+       ; Want Up (Target -3 ie 253)
+       ; Decrement if > 253 OR Positive (<128)
+       if evy[iter] > 253 || evy[iter] < 128 then evy[iter] = evy[iter] - 1
 
 skip_accel
        ; Apply Velocity X
@@ -941,8 +961,8 @@ update_asteroid
    if alife = 0 then gosub spawn_asteroid
    if alife = 0 then return
    
-   ; Move Asteroid (Slow drift - every 4th frame)
-   if (frame & 3) > 0 then return
+   ; Move Asteroid (Variable Speed via Mask)
+   if (frame & asteroid_move_mask) > 0 then return
    
    ; Move Asteroid (16-bit)
    temp_v = avx
@@ -1009,6 +1029,7 @@ spawn_asteroid
     ax_hi = px_hi
     if temp_acc >= 128 then if temp_v > px then ax_hi = ax_hi - 1
     if temp_acc < 128 then if temp_v < px then ax_hi = ax_hi + 1
+    if ax_hi = 255 then ax_hi = 3  ; Handle -1 wrap FIRST
     if ax_hi >= 4 then ax_hi = 0
     
     ; AY starts as Screen Y await (90, 5, 175). Center is 90.
@@ -1022,11 +1043,11 @@ spawn_asteroid
     if ay_hi >= 4 then ay_hi = 0
    
    ; Random Velocity (Slow drift)
-   ; 1 or -1 (255)
+   ; Use asteroid_base_speed
    rand_val = frame & 1
-   if rand_val = 0 then avx = 1 else avx = 255
+   if rand_val = 0 then avx = asteroid_base_speed else temp_v = asteroid_base_speed : avx = 0 - temp_v
    rand_val = frame & 2
-   if rand_val = 0 then avy = 1 else avy = 255
+   if rand_val = 0 then avy = asteroid_base_speed else temp_v = asteroid_base_speed : avy = 0 - temp_v
    
    return
 
@@ -1040,16 +1061,19 @@ check_collisions
          if elife[temp_acc] <> 1 then goto skip_enemy_coll
          
          ; Check X Collision (Screen Space)
+         ; Bullet (4) vs Fighter (16). Center bullet (+6)
          temp_w = ex_scr[temp_acc]
          temp_v = bul_x[iter] - temp_w
+         temp_v = temp_v - 6 ; Center Offset
          if temp_v >= 128 then temp_v = 0 - temp_v
-         if temp_v >= 5 then goto skip_enemy_coll
+         if temp_v >= 10 then goto skip_enemy_coll ; Half Fighter Width + Bullet
          
          ; Check Y Collision
          temp_w = ey_scr[temp_acc]
          temp_v = bul_y[iter] - temp_w
+         temp_v = temp_v - 6 ; Center Offset
          if temp_v >= 128 then temp_v = 0 - temp_v
-         if temp_v >= 7 then goto skip_enemy_coll
+         if temp_v >= 10 then goto skip_enemy_coll
          
          ; Hit!
          blife[iter] = 0
@@ -1058,7 +1082,7 @@ check_collisions
          ; Decrement Fighters Remaining
          fighters_remaining = fighters_remaining - 1
          fighters_bcd = converttobcd(fighters_remaining)
-         if fighters_remaining <= 0 then goto level_complete
+         if fighters_remaining <= 0 then goto coll_done
          
          goto skip_enemy_coll ; Bullet used up
          
@@ -1094,59 +1118,119 @@ skip_bullet_coll
       ; Also decrement fighter count (fighter destroyed)
       fighters_remaining = fighters_remaining - 1
       fighters_bcd = converttobcd(fighters_remaining)
-      if fighters_remaining <= 0 then goto level_complete
+      if fighters_remaining <= 0 then goto coll_done
       
       ; Check for death
-      if player_shield <= 0 then goto lose_life
+      if player_shield <= 0 then goto coll_done
       
 skip_p_e
    next
    
-   ; goto check_asteroid_coll
-   goto check_player_ebul
+   ; Fall through to check_asteroid_coll
    
 check_asteroid_coll
-   if alife = 0 then goto check_player_ebul
+   ; Only check if visible
+   if a_on = 0 then goto check_player_ebul
 
-   ; 3. Bullets vs Asteroid (Large 32x64 sprite)
+   ; 3. Bullets vs Asteroid (Indestructible)
    for iter = 0 to 3
       if blife[iter] = 0 then goto skip_bul_ast
-      if a_on = 0 then goto skip_bul_ast
 
       ; X Check
       temp_v = bul_x[iter] - ax_scr
-      temp_v = temp_v - 8
+      temp_v = temp_v - 6 ; Center Offset (+6)
       if temp_v >= 128 then temp_v = 0 - temp_v
-      if temp_v >= 10 then goto skip_bul_ast
+      if temp_v >= 12 then goto skip_bul_ast ; Match Asteroid Box (12)
       
       ; Y Check
       temp_v = bul_y[iter] - ay_scr
-      temp_v = temp_v - 8
+      temp_v = temp_v - 6
       if temp_v >= 128 then temp_v = 0 - temp_v
-      if temp_v >= 10 then goto skip_bul_ast
+      if temp_v >= 22 then goto skip_bul_ast ; Match Asteroid Box (22)
       
-      ; Hit!
+      ; Hit! Bullet dies, Asteroid lives.
       blife[iter] = 0
-      alife = 0
-      goto check_player_ebul
+      ; playsfx sfx_ping ?
 
 skip_bul_ast
    next
    
-   ; 4. Player vs Asteroid (Screen Space)
-   if a_on = 0 then goto check_player_ebul
-
+   ; 4. Player vs Asteroid
    temp_w = px_scr - ax_scr
-   if temp_w >= 128 then temp_w = 0 - temp_w
-   if temp_w >= 14 then goto check_player_ebul
+   ; Center-to-center check
+   if temp_w >= 128 then temp_v = 0 - temp_w else temp_v = temp_w
+   if temp_v >= 12 then goto check_enemy_ast_coll ; Tuned Width ~16+Player (Tight)
    
    ; Y Check
-   temp_w = py_scr - ay_scr
-   if temp_w >= 128 then temp_w = 0 - temp_w
-   if temp_w >= 14 then goto check_player_ebul
+   temp_acc = py_scr - ay_scr
+   if temp_acc >= 128 then temp_v = 0 - temp_acc else temp_v = temp_acc
+   if temp_v >= 22 then goto check_enemy_ast_coll ; Tuned Height ~32+Player (Tight)
    
    ; Hit Player!
-   alife = 0
+   ; 1. Damage Shield (-10)
+   if player_shield < 10 then player_shield = 0 else player_shield = player_shield - 10
+   shield_bcd = converttobcd(player_shield)
+   if player_shield <= 0 then goto coll_done
+   
+   ; 2. Bounce Logic
+   ; If Player is Left of Ast (temp_w < 0 -> >128), Bounce Left.
+   ; px_scr < ax_scr -> temp_w is "negative" (high byte)
+   if temp_w >= 128 then vx_m = 64 : vx_p = 0 else vx_p = 64 : vx_m = 0
+   
+   ; Y Bounce
+   if temp_acc >= 128 then vy_m = 64 : vy_p = 0 else vy_p = 64 : vy_m = 0
+   
+   ; Sound Effect?
+   
+check_enemy_ast_coll
+   ; 5. Enemy vs Asteroid (Strategic Kill)
+   for iter = 0 to 3
+      if elife[iter] = 0 then goto skip_e_ast
+      if elife[iter] > 1 then goto skip_e_ast ; Don't hit if already exploding
+      if e_on[iter] = 0 then goto skip_e_ast
+      
+      ; X Check
+      temp_v = ex_scr[iter] - ax_scr
+      if temp_v >= 128 then temp_v = 0 - temp_v
+      if temp_v >= 14 then goto skip_e_ast ; Tightened (Was 20)
+
+      ; Y Check
+      temp_v = ey_scr[iter] - ay_scr
+      if temp_v >= 128 then temp_v = 0 - temp_v
+      if temp_v >= 24 then goto skip_e_ast ; Tightened (Was 20 - adjusted for height)
+      
+      ; Hit! Destroy Enemy
+      elife[iter] = 18 ; Explode
+      ; Grant points?
+      
+      ; Decrement fighter count
+      fighters_remaining = fighters_remaining - 1
+      fighters_bcd = converttobcd(fighters_remaining)
+      if fighters_remaining <= 0 then goto coll_done
+
+skip_e_ast
+   next
+
+   ; 6. Enemy Bullet vs Asteroid (Missing)
+   for iter = 0 to 3
+      if eblife[iter] = 0 then goto skip_ebul_ast
+      if a_on = 0 then goto skip_ebul_ast
+      
+      ; X Check
+      temp_v = ebul_x[iter] - ax_scr
+      if temp_v >= 128 then temp_v = 0 - temp_v
+      if temp_v >= 12 then goto skip_ebul_ast
+      
+      ; Y Check
+      temp_v = ebul_y[iter] - ay_scr
+      if temp_v >= 128 then temp_v = 0 - temp_v
+      if temp_v >= 22 then goto skip_ebul_ast
+      
+      ; Hit! Bullet dies. Asteroid lives.
+      eblife[iter] = 0
+
+skip_ebul_ast
+   next
    
 check_player_ebul
    ; Check vs Enemy Bullets (Screen Space)
@@ -1158,14 +1242,14 @@ check_player_ebul
       temp_w = temp_w + 7 ; Offset Check
       
       if temp_w >= 128 then temp_w = 0 - temp_w
-      if temp_w >= 6 then goto skip_ebul_coll
+      if temp_w >= 8 then goto skip_ebul_coll ; Widen to ~8 (Size 16)
       
       ; Y Check
       temp_w = py_scr - ebul_y[iter]
       temp_w = temp_w + 7 
       
       if temp_w >= 128 then temp_w = 0 - temp_w
-      if temp_w >= 6 then goto skip_ebul_coll
+      if temp_w >= 8 then goto skip_ebul_coll
       
       ; Hit Player
       eblife[iter] = 0
@@ -1174,7 +1258,7 @@ check_player_ebul
       ; Decrement Shields
       if player_shield < 1 then player_shield = 0 else player_shield = player_shield - 1
       shield_bcd = converttobcd(player_shield)
-      if player_shield <= 0 then goto lose_life
+      if player_shield <= 0 then goto coll_done
       
 skip_ebul_coll
    next
@@ -1650,11 +1734,11 @@ set_level_config
    ; enemy_fire_cooldown: Frames between enemy shots
    ;   Higher = slower fire rate, Lower = rapid fire
    
-   if current_level = 1 then enemy_move_mask = 1 : enemy_fire_cooldown = 60
-   if current_level = 2 then enemy_move_mask = 1 : enemy_fire_cooldown = 45
-   if current_level = 3 then enemy_move_mask = 0 : enemy_fire_cooldown = 30
-   if current_level = 4 then enemy_move_mask = 0 : enemy_fire_cooldown = 25
-   if current_level >= 5 then enemy_move_mask = 0 : enemy_fire_cooldown = 20
+   if current_level = 1 then enemy_move_mask = 2 : enemy_fire_cooldown = 60 : asteroid_move_mask = 3 : asteroid_base_speed = 1
+   if current_level = 2 then enemy_move_mask = 1 : enemy_fire_cooldown = 45 : asteroid_move_mask = 1 : asteroid_base_speed = 1
+   if current_level = 3 then enemy_move_mask = 1 : enemy_fire_cooldown = 30 : asteroid_move_mask = 1 : asteroid_base_speed = 1
+   if current_level = 4 then enemy_move_mask = 0 : enemy_fire_cooldown = 25 : asteroid_move_mask = 0 : asteroid_base_speed = 1
+   if current_level >= 5 then enemy_move_mask = 0 : enemy_fire_cooldown = 20 : asteroid_move_mask = 0 : asteroid_base_speed = 2
    return
 
 you_win_game
@@ -1732,14 +1816,14 @@ PlayMusic
 .SetupPtr:
    ; Copy persistent pointer to ZP for indirect access
    lda music_ptr_lo
-   sta temp1
+   sta $E2 ; music_zp_lo (var98)
    lda music_ptr_hi
-   sta temp2
+   sta $E3 ; music_zp_hi (var99)
 
    ; Process Frame
    ldy #0
 .Loop:
-   lda (temp1),y
+   lda ($E2),y
    cmp #$FF       ; End of Frame?
    beq .EndFrame
    cmp #$FE       ; End of Song?
@@ -1748,7 +1832,7 @@ PlayMusic
    ; It is a Register Address
    tax            ; X = Register
    iny
-   lda (temp1),y  ; A = Value
+   lda ($E2),y  ; A = Value
    sta $0450,x    ; Write to POKEY
    iny
    cpy #64        ; Safety: Prevent infinite processing (Max 64 bytes/frame)

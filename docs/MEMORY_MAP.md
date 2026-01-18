@@ -17,10 +17,10 @@ The 7800basic `var0` - `var99` block (approx `$80` - `$E3`) is fully allocated a
 | `var9` | `shpfr` | Player Sprite Frame | |
 | `var10` | `rot_timer` | Rotation Timer | |
 | `var11` | `move_step` | Movement Step | |
-| `var12` | `temp_acc` | Temporary Accumulator | Scratch usage |
+| `var12` | `temp_acc`, `temp1` | Temporary Accumulator | Scratch / Music Driver |
 | `var13` | `frame` | Global Frame Counter | |
 | `var14` | `common` | Common Iterator/Temp | |
-| `var15` | `temp_v` | Temporary Value | Scratch usage |
+| `var15` | `temp_v`, `temp2` | Temporary Value | Scratch / Music Driver |
 | `var16` | `bcooldown` | Bullet Cooldown Timer | |
 | `var17` | `iter` | Loop Iterator | |
 | `var18-21` | `bul_x` | Player Bullet X (Low) | Array [4] |
@@ -43,7 +43,9 @@ The 7800basic `var0` - `var99` block (approx `$80` - `$E3`) is fully allocated a
 | `var74-77` | `ex_hi` | Enemy X (High Byte) | Array [4] - **World Coordinates** |
 | `var78` | `acc_mx` | Physics Acc X | |
 | `var79` | `acc_my` | Physics Acc Y | |
-| `var80-99` | `star_x` | Starfield X Coords | Array [20] |
+| `var80-83` | `star_x` | Starfield X Coords | Array [4] (Reduced from 20) |
+| `var98` | `music_zp_lo` | Music Pointer (Low) | Dedicated ZP for ASM Driver |
+| `var99` | `music_zp_hi` | Music Pointer (High) | Dedicated ZP for ASM Driver |
 
 ---
 
@@ -98,6 +100,8 @@ Variables manually allocated to the upper RAM block using `dim var = $Address`.
 | `$25AA` | `music_ptr_lo` | Music Pointer (Low) | **ASM Usage** |
 | `$25AB` | `music_ptr_hi` | Music Pointer (High) | **ASM Usage** |
 | `$25AC` | `music_active` | Music Playing Flag | |
+| `$25AD` | `asteroid_move_mask` | Asteroid Speed Mask | |
+| `$25AE` | `asteroid_base_speed` | Asteroid Base Speed | |
 
 ---
 

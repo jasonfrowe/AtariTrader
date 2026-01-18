@@ -180,6 +180,10 @@ screen_timer = $254D
  
 rand_val = $254C
  
+music_zp_hi = var99
+ 
+music_zp_lo = var98
+ 
 music_ptr_hi = $25AB
  
 music_ptr_lo = $25AA
@@ -217,6 +221,10 @@ star_c = $2520
 star_y = $2500
  
 star_x = var80
+ 
+asteroid_base_speed = $25AE
+ 
+asteroid_move_mask = $25AD
  
 enemy_fire_cooldown = $25A3
  
