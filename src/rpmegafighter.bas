@@ -121,6 +121,7 @@
    dim boss_scr_x = $25B8    ; Boss Screen X (Cached)
    dim boss_scr_y = $25B9    ; Boss Screen Y (Cached)
    dim boss_on = $25BA       ; Boss Visible Flag
+   dim boss_fighter_timer = $25BB ; Timer for fighter spawning
    
    ; Safety Buffer 76-79
    
@@ -174,6 +175,8 @@
    dim alife = $2554
    dim ax_hi = $2555
    dim ay_hi = $2556
+   dim asteroid_timer = $2557  ; 4-second despawn timer (240 frames)
+   dim boss_asteroid_cooldown = $25BC ; Cooldown for boss asteroid throws
    
    ; Aliases for plotsprite usage
    dim bul_x0 = var18 : dim bul_x1 = var19 : dim bul_x2 = var20 : dim bul_x3 = var21
@@ -241,6 +244,7 @@ cold_start
    ; UI Cache Variables (Bug Fix #3: Optimize plotchars)
    dim cached_lives = $2572        ; Last rendered player_lives value
    dim cached_level = $2573        ; Last rendered current_level value
+   dim cached_boss_hp = $2574      ; Last rendered boss_hp value
    
    ; Player High Bytes
    dim px_hi = $2570
@@ -425,7 +429,7 @@ init_game
 
 main_loop
    clearscreen
-   restorescreen  ; Restore static UI (lives, treasures)
+   restorescreen  ; Restore static UI (lives, treasures, boss hp)
    
    ; score_p = cam_x ; DEBUG
    ; score_e = px    ; DEBUG
@@ -538,11 +542,16 @@ main_loop
 
     ; ---- UI Rendering (Optimized) ----
     
+    ; Creates optimized UI
+    
     ; Lives Display (only update when changed)
-    if player_lives <> cached_lives then gosub draw_lives : savescreen
+    if player_lives <> cached_lives then gosub refresh_static_ui
     
     ; Treasures Display (only update when level changes)
-    if current_level <> cached_level then gosub draw_treasures : savescreen
+    if current_level <> cached_level then gosub refresh_static_ui
+    
+    ; Boss Health Display
+    if current_level = 6 then if boss_hp <> cached_boss_hp then gosub refresh_static_ui
     
     ; Dynamic values (update every frame)
     ; Shield (Left, Green, Palette 3)
@@ -589,15 +598,15 @@ main_loop
     gosub draw_stars
     gosub draw_player_bullets
     gosub draw_enemies
-    if alife > 0 then gosub draw_asteroid
-    if current_level = 6 then gosub draw_boss
-    gosub draw_enemy_bullets
-    
-    ; Update Music
-    gosub PlayMusic
- 
-    drawscreen
-   goto main_loop
+     if alife > 0 then gosub draw_asteroid
+     if current_level = 6 then gosub draw_boss
+     gosub draw_enemy_bullets
+     
+     ; Update Music
+     gosub PlayMusic
+  
+     drawscreen
+    goto main_loop
 
 check_rotation
    if joy0left  then angle = angle - 1 : rot_timer = 4
@@ -1401,8 +1410,66 @@ check_player_ebul
 skip_ebul_coll
    next
 
+check_boss_collisions
+   ; Only check if Level 6 and boss is active
+   if current_level <> 6 then goto coll_done
+   if boss_state = 0 then goto coll_done
+   if boss_on = 0 then goto coll_done
+   
+   ; 1. Bullets vs Boss
+   for iter = 0 to 3
+      if blife[iter] = 0 then goto skip_bul_boss
+      
+      ; X Check (Boss is 32px wide)
+      temp_v = bul_x[iter] - boss_scr_x
+      temp_v = temp_v - 6 ; Center bullet offset
+      if temp_v >= 128 then temp_v = 0 - temp_v
+      if temp_v >= 16 then goto skip_bul_boss ; Half boss width + bullet
+      
+      ; Y Check (Boss is 64px tall)
+      temp_v = bul_y[iter] - boss_scr_y
+      temp_v = temp_v - 6
+      if temp_v >= 128 then temp_v = 0 - temp_v
+      if temp_v >= 32 then goto skip_bul_boss ; Half boss height + bullet
+      
+      ; Hit!
+      blife[iter] = 0
+      if boss_hp < 1 then boss_hp = 0 else boss_hp = boss_hp - 1
+      playsfx sfx_damage 0
+      
+      ; Check for boss death
+      if boss_hp <= 0 then goto boss_defeated
+      
+skip_bul_boss
+   next
+   
+   ; 2. Player vs Boss (Heavy damage)
+   temp_v = px_scr - boss_scr_x
+   temp_v = temp_v + 4 ; Offset
+   if temp_v >= 128 then temp_v = 0 - temp_v
+   if temp_v >= 20 then goto coll_done ; Boss width check
+   
+   ; Y Check
+   temp_v = py_scr - boss_scr_y
+   if temp_v >= 128 then temp_v = 0 - temp_v
+   if temp_v >= 36 then goto coll_done ; Boss height check
+   
+   ; Hit Player - Heavy Damage
+   playsfx sfx_damage 0
+   if player_shield < 20 then player_shield = 0 else player_shield = player_shield - 20
+   shield_bcd = converttobcd(player_shield)
+   
+   ; Bounce player away
+   if px_scr < boss_scr_x then vx_m = 128 : vx_p = 0 else vx_p = 128 : vx_m = 0
+   if py_scr < boss_scr_y then vy_m = 128 : vy_p = 0 else vy_p = 128 : vy_m = 0
+
 coll_done
    return
+
+boss_defeated
+   ; Boss destroyed - trigger level complete
+   fighters_remaining = 0
+   goto coll_done
 
 init_stars
    for iter = 0 to 3
@@ -1773,6 +1840,52 @@ draw_treasures
    cached_level = current_level
    return
 
+refresh_static_ui
+    clearscreen
+    
+    ; 1. Draw Lives (Standard Scoredigits)
+    characterset scoredigits_8_wide
+    alphachars '0123456789ABCDEF'
+    gosub draw_lives
+    gosub draw_treasures
+    
+    ; 2. Draw Boss Health (Alphabet)
+    if current_level <> 6 then goto skip_boss_ui
+    
+    characterset alphabet_8_wide
+    alphachars ' ABCDEFGHIJKLMNOPQRSTUVWXYZ.!?,"$():'
+    
+    ; Draw BOSS label
+    plotchars 'BOSS' 5 20 10
+    
+    ; Draw Dollars based on HP
+    temp_v = boss_hp / 10
+    if temp_v = 0 && boss_hp > 0 then temp_v = 1
+    
+    if temp_v = 0 then goto skip_boss_loop
+
+    for iter = 0 to temp_v
+       if iter >= temp_v then goto skip_dollar
+       temp_w = 60 + iter * 8
+       plotchars '$' 5 temp_w 10
+skip_dollar
+    next
+
+skip_boss_loop
+
+skip_boss_ui
+    ; 3. Restore Scoredigits (Safety)
+    characterset scoredigits_8_wide
+    alphachars '0123456789ABCDEF'
+    
+    ; Update all caches since we just redrew everything
+    cached_lives = player_lives
+    cached_level = current_level
+    cached_boss_hp = boss_hp
+    
+    savescreen
+    return
+
 
    ; ---- Data Tables (ROM) ----
    ; Boosted max acceleration to 6 (was 3) to fix crawling
@@ -1881,14 +1994,24 @@ init_boss
    boss_hp = 100                     ; Boss health
    boss_state = 1                    ; Active state
    
-   ; Set diagonal velocity (Down-Right by default)
-   ; Direction Testing:
-   ; Down-Right: bvx=2, bvy=2
-   ; Down-Left:  bvx=254, bvy=2
-   ; Up-Right:   bvx=2, bvy=254
-   ; Up-Left:    bvx=254, bvy=254
-   bvx = 0   ; Right (+)
-   bvy = 0   ; Down (+)
+   ; Randomize Boss Position (Ensure off-screen)
+boss_spawn_retry
+   
+   ; Use Hardware RNG (rand)
+   rand_val = rand
+   boss_x = rand_val
+   boss_x_hi = rand_val & 1
+   
+   boss_y = rand
+   boss_y_hi = rand & 1 
+   
+   ; Check distance from player (Approximation)
+   ; If in same High Byte quadrant, Boss is too close/on-screen.
+   if boss_x_hi = px_hi && boss_y_hi = py_hi then goto boss_spawn_retry
+
+boss_pos_ok
+   bvx = 0   ; Stationary
+   bvy = 0   ; Stationary
    
    boss_on = 0  ; Calculated by update_render_coords
    
@@ -1896,6 +2019,8 @@ init_boss
    P6C1 = $46 ; Red
    P6C2 = $96 ; Blue
    P6C3 = $0A ; Gray
+   
+   boss_fighter_timer = 60 ; Initial delay (1s)
    return
 
 update_boss
@@ -1942,6 +2067,45 @@ boss_y_done
    if boss_y_hi = 255 then boss_y_hi = 1
    if boss_y_hi >= 2 then boss_y_hi = 0
    
+   if boss_y_hi = 255 then boss_y_hi = 1
+   if boss_y_hi >= 2 then boss_y_hi = 0
+   
+   ; --- Fighter Spawning ---
+   if boss_fighter_timer > 0 then boss_fighter_timer = boss_fighter_timer - 1
+   if boss_fighter_timer = 0 then gosub attempt_boss_spawn_fighter
+   
+   return
+
+attempt_boss_spawn_fighter
+   ; Try to spawn a fighter at boss location
+   ; Find free slot
+   for iter = 0 to 3
+      if elife[iter] = 0 then goto do_spawn_boss_fighter
+   next
+   ; No slots, reset timer slightly faster to try again
+   boss_fighter_timer = 30
+   return
+
+do_spawn_boss_fighter
+   elife[iter] = 1
+   evx[iter] = 0 : evy[iter] = 0
+   
+   ; Spawn at Boss Center
+   ; Boss is 32x64. Center ~ +16, +32
+   temp_v = boss_x + 16
+   ex[iter] = temp_v
+   ex_hi[iter] = boss_x_hi
+   if temp_v < boss_x then ex_hi[iter] = ex_hi[iter] + 1 ; Overflow
+   if ex_hi[iter] >= 2 then ex_hi[iter] = 0
+   
+   temp_v = boss_y + 32
+   ey[iter] = temp_v
+   ey_hi[iter] = boss_y_hi
+   if temp_v < boss_y then ey_hi[iter] = ey_hi[iter] + 1 ; Overflow
+   if ey_hi[iter] >= 2 then ey_hi[iter] = 0
+   
+   ; Reset Timer (2 seconds? 120 frames)
+   boss_fighter_timer = 120 
    return
 
 

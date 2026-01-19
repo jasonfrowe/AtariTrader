@@ -124,6 +124,8 @@ py_hi = $2571
  
 px_hi = $2570
  
+cached_boss_hp = $2574
+ 
 cached_level = $2573
  
 cached_lives = $2572
@@ -181,6 +183,10 @@ bul_x3 = var21
 bul_x2 = var20 
 bul_x1 = var19 
 bul_x0 = var18 
+boss_asteroid_cooldown = $25BC
+ 
+asteroid_timer = $2557
+ 
 ay_hi = $2556
  
 ax_hi = $2555
@@ -242,6 +248,8 @@ star_c = $2520
 star_y = $2500
  
 star_x = var80
+ 
+boss_fighter_timer = $25BB
  
 boss_on = $25BA
  
