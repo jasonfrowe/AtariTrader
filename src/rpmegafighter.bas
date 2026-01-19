@@ -260,7 +260,7 @@ title_loop
     
     drawscreen
     
-    if joy0fire0 then goto init_game
+    if joy0fire0 then goto story_loop
     
     ; Timeout Logic (30 Seconds)
     ; Use frame counter to tick seconds
@@ -269,6 +269,57 @@ title_loop
     if screen_timer = 0 then goto init_game
     
     goto title_loop
+
+story_loop
+    screen_timer = 30 ; 30s timeout
+    clearscreen
+    alife=0
+    
+    ; Setup Text
+    characterset alphabet_8_wide
+    alphachars ' ABCDEFGHIJKLMNOPQRSTUVWXYZ,!?,"$():'
+    
+    ; Premise (Zones 0-11)
+    plotchars 'YOU ARE ON A MISSION' 1 0 1
+    plotchars 'TO RETRIEVE RELICS' 1 0 2 ; Palette 0 (Grey)
+    plotchars 'THAT POWER UP YOUR' 1 0 3
+    plotchars 'SHIP' 1 0 4
+    
+    plotchars 'EACH ARTIFACT WILL' 0 0 6
+    plotchars 'INCREASE YOUR POWER' 0 0 7
+    
+    plotchars 'DESTROY ENEMY WAVES' 1 0 9
+    plotchars 'TO GET EACH RELIC' 1 0 10
+    plotchars 'AND DEFEAT EVIL' 1 0 11
+    
+    ; Play Music (Continue from Title)
+    gosub PlayMusic
+    
+    drawscreen
+    
+    ; Wait for Button Release (Debounce)
+    if joy0fire0 then goto story_loop
+    
+story_wait
+    ; Keep Music Playing while waiting
+    gosub PlayMusic
+    
+    ; Timeout Logic (30 Seconds)
+    frame = frame + 1
+    if frame >= 60 then frame = 0 : screen_timer = screen_timer - 1
+    if screen_timer = 0 then goto leave_story
+    
+    drawscreen
+    
+    ; Wait for Button Press
+    if !joy0fire0 then goto story_wait
+    
+leave_story
+    ; Restore Scoredigits for Main Game
+    alphachars '0123456789ABCDEF'
+    characterset scoredigits_8_wide
+    
+    goto init_game
 
 init_game
      ; Stop title music
@@ -283,14 +334,14 @@ init_game
      ; Camera removed (Player Centric)
     
     ; Initialize Lives
-    player_lives = 3
+    player_lives = 2
     
     ; Initialize Level
     current_level = 1
     
     ; Initialize Game State
-    player_shield = 99
-    shield_bcd = converttobcd(99)
+    player_shield = 50
+    shield_bcd = converttobcd(50)
     
     fighters_remaining = 20  ; Level 1 starting value
     fighters_bcd = converttobcd(20)
@@ -459,10 +510,13 @@ main_loop
     ; Fighters Remaining (Right, Red)
     plotvalue scoredigits_8_wide 5 fighters_bcd 2 104 0
 
-    ; Draw 5 Treasures (Index 10/'A')
-    ; alphachars setup in header allows 'A' -> Index 10 mapping
-    ; characterset is already set above
-    plotchars 'ABCDE' 7 60 0
+    ; Draw Treasures based on Level Completion (Index 10/'A')
+    ; Level 1 Done -> Show A (current_level > 1)
+    if current_level > 1 then plotchars 'A' 7 60 0
+    if current_level > 2 then plotchars 'B' 7 68 0
+    if current_level > 3 then plotchars 'C' 7 76 0
+    if current_level > 4 then plotchars 'D' 7 84 0
+    if current_level > 5 then plotchars 'E' 7 92 0
     
     ; DEBUG: Display World Coords Comparison (Player vs Enemy 0)
     ; Zone 1: PxHi ExHi[0] PyHi EyHi[0]
@@ -529,11 +583,14 @@ apply_thrust
    if temp_acc < 128 then vy_m = vy_m + temp_acc
    if temp_acc >= 128 then temp_acc = 0 - temp_acc : vy_p = vy_p + temp_acc
    
-   ; Max speed 190 (approx 3 px/frame)
-   if vx_p > 190 then vx_p = 190
-   if vx_m > 190 then vx_m = 190
-   if vy_p > 190 then vy_p = 190
-   if vy_m > 190 then vy_m = 190
+   ; Max speed Logic
+   temp_v = 120 ; Slower start
+   if current_level >= 3 then temp_v = 190 ; Normal Speed
+   
+   if vx_p > temp_v then vx_p = temp_v
+   if vx_m > temp_v then vx_m = temp_v
+   if vy_p > temp_v then vy_p = temp_v
+   if vy_m > temp_v then vy_m = temp_v
    return
 
 neutralize_forces
@@ -650,7 +707,9 @@ spawn_bullet
    ; Play sound
    playsfx sfx_laser 0
    
-   bcooldown = 15 ; Can fire every 15 frames
+   bcooldown = 25 ; Slow (Level 1)
+   if current_level >= 2 then bcooldown = 15 ; Normal (Level 2-4)
+   if current_level >= 5 then bcooldown = 8  ; Fast (Level 5+)
    return
 
 update_enemy
@@ -1632,26 +1691,60 @@ level_complete
    ; All fighters destroyed - level won!
    gosub StopMusic
    clearscreen
-   BACKGRND=$00  ; Black (was Green)
-   ; Display level number
-   temp_v = converttobcd(current_level)
-   ; plotvalue scoredigits_8_wide 7 temp_v 1 75 88 ; this is way offscreen.
+   BACKGRND=$00
+   
+   screen_timer = 30 ; 30s timeout
+   
+   characterset alphabet_8_wide
+   alphachars ' ABCDEFGHIJKLMNOPQRSTUVWXYZ,!?,"$():'
+   
+   plotchars 'YOU DID IT' 1 40 2
+   
+   ; Reward Logic
+   plotchars 'REWARD:' 0 20 4
+   
+   if current_level = 1 then plotchars 'INCREASED FIREPOWER' 1 0 6
+   if current_level = 2 then plotchars 'INCREASED SPEED'     1 0 6
+   if current_level = 3 then plotchars 'MAX HEALTH UP'       1 0 6
+   if current_level = 4 then plotchars 'FASTER RECHARGE'     1 0 6
+   if current_level = 5 then plotchars 'EXTRA LIFE'          1 0 6
+   
+   ; Draw Prize Icon
+   characterset scoredigits_8_wide
+   alphachars '0123456789ABCDEF'
+   
+   if current_level = 1 then plotchars 'A' 7 80 4
+   if current_level = 2 then plotchars 'B' 7 80 4
+   if current_level = 3 then plotchars 'C' 7 80 4
+   if current_level = 4 then plotchars 'D' 7 80 4
+   if current_level = 5 then plotchars 'E' 7 80 4
+   
    drawscreen
    
-   ; Wait for button release first
+   ; Wait for button release
 level_complete_release
    if joy0fire0 then goto level_complete_release
    
-   ; Now wait for button press
-   screen_timer = 250
+   ; Wait for button press with timeout
 level_complete_wait
-   screen_timer = screen_timer - 1
-   if screen_timer = 0 then goto level_next
-   drawscreen
-   if !joy0fire0 then goto level_complete_wait
+   drawscreen ; Sync to 60Hz
    
+   frame = frame + 1
+   if frame >= 60 then frame = 0 : screen_timer = screen_timer - 1
+   if screen_timer = 0 then goto level_next_restore
+   
+   if !joy0fire0 then goto level_complete_wait
+
+level_next_restore
+   ; Restore standard scoredigits mapping just in case
+   alphachars '0123456789ABCDEF'
+   characterset scoredigits_8_wide
+
 level_next
    
+   ; Reward Check
+   if current_level = 5 then player_lives = player_lives + 1
+
    ; Advance to next level
    current_level = current_level + 1
    if current_level > 5 then goto you_win_game
@@ -1691,8 +1784,11 @@ lose_life_pause
 
 restart_level
    ; Reset level state after death
-   player_shield = 99
-   shield_bcd = converttobcd(99)
+   
+   temp_v = 50
+   if current_level >= 4 then temp_v = 99
+   player_shield = temp_v
+   shield_bcd = converttobcd(temp_v)
    
    ; Reset fighters based on current level
    gosub set_level_fighters
@@ -1795,19 +1891,38 @@ you_lose
    ; Game Over - no lives left
    gosub StopMusic
    clearscreen
-   BACKGRND=$00  ; Black (was Red)
+   BACKGRND=$00
+   
+   screen_timer = 30 ; 30s timeout
+   
+   characterset alphabet_8_wide
+   alphachars ' ABCDEFGHIJKLMNOPQRSTUVWXYZ,!?,"$():'
+   
+   plotchars 'DO NOT GIVE UP' 1 30 4
+   plotchars 'TRY AGAIN' 0 1 6
+   plotchars 'YOUR FATE AWAITS' 1 1 8
+   
    drawscreen
-   ; Wait for button release first
+   
+   ; Wait for button release
 you_lose_release
    if joy0fire0 then goto you_lose_release
    
-   ; Now wait for new press
-   screen_timer = 250
+   ; Wait for button press with timeout
 you_lose_wait
-   screen_timer = screen_timer - 1
-   if screen_timer = 0 then goto cold_start
-   drawscreen
+   drawscreen ; Sync to 60Hz
+   
+   frame = frame + 1
+   if frame >= 60 then frame = 0 : screen_timer = screen_timer - 1
+   if screen_timer = 0 then goto game_over_restore
+   
    if !joy0fire0 then goto you_lose_wait
+
+game_over_restore
+   ; Restore standard scoredigits mapping just in case
+   alphachars '0123456789ABCDEF'
+   characterset scoredigits_8_wide
+   
    goto cold_start
 
    ; ============================================
