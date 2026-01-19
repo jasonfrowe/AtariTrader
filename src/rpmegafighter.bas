@@ -43,7 +43,7 @@
    incgraphic graphics/scoredigits_8_wide.png 160A
 
    ; Import Alphabet for Title Cards
-   alphachars ' ABCDEFGHIJKLMNOPQRSTUVWXYZ,!?,"$():'
+   alphachars ' ABCDEFGHIJKLMNOPQRSTUVWXYZ.!?,"$():'
    incgraphic graphics/alphabet_8_wide.png 160A
    
    ; ---- Dimensions ----
@@ -114,6 +114,13 @@
    dim boss_y = $25B1
    dim boss_hp = $25B2
    dim boss_state = $25B3
+   dim bvx = $25B4           ; Boss Velocity X
+   dim bvy = $25B5           ; Boss Velocity Y
+   dim boss_x_hi = $25B6     ; Boss X High Byte (World)
+   dim boss_y_hi = $25B7     ; Boss Y High Byte (World)
+   dim boss_scr_x = $25B8    ; Boss Screen X (Cached)
+   dim boss_scr_y = $25B9    ; Boss Screen Y (Cached)
+   dim boss_on = $25BA       ; Boss Visible Flag
    
    ; Safety Buffer 76-79
    
@@ -256,7 +263,7 @@ title_loop
     ; Version Text (Bottom of Screen - Zone 11)
     characterset alphabet_8_wide
     ; Corrected alphachars based on user feedback
-    alphachars ' ABCDEFGHIJKLMNOPQRSTUVWXYZ,!?,"$():'
+    alphachars ' ABCDEFGHIJKLMNOPQRSTUVWXYZ.!?,"$():'
     plotchars 'VERSION' 1 20 11
     
     ; Restore scoredigits just in case
@@ -288,7 +295,7 @@ story_loop
     
     ; Setup Text
     characterset alphabet_8_wide
-    alphachars ' ABCDEFGHIJKLMNOPQRSTUVWXYZ,!?,"$():'
+    alphachars ' ABCDEFGHIJKLMNOPQRSTUVWXYZ.!?,"$():'
     
     ; Premise (Zones 0-11)
     plotchars 'YOU ARE ON A MISSION' 1 0 1
@@ -351,7 +358,7 @@ init_game
     player_lives = 3  ; Start with 3 lives (display will show 2 hearts = 2 extra lives)
     
     ; Initialize Level
-    current_level = 1
+    current_level = 6
     
     ; Initialize UI cache (Bug Fix #3)
     ; Set to invalid values to force initial draw
@@ -365,8 +372,10 @@ init_game
     fighters_remaining = 20  ; Level 1 starting value
     fighters_bcd = converttobcd(20)
     
-    ; Initialize difficulty config for Level 1
     gosub set_level_config
+    
+    ; Initialize boss (Level 6)
+    if current_level = 6 then gosub init_boss
     
     ; Initialize prize system (all active)
     prize_active0 = 1
@@ -496,6 +505,9 @@ main_loop
    
    ; ---- Asteroid Update ----
    gosub update_asteroid
+   
+   ; ---- Boss Update (Level 6) ----
+   if current_level = 6 then gosub update_boss
 
    ; ---- Collisions ----
    gosub check_collisions
@@ -1103,7 +1115,7 @@ ast_move_pos_y
    if ay < temp_v then ay_hi = ay_hi + 1
 
 ast_y_done
-   ; Wrap Y (0-1, 2 segments = 512)
+   ; Wrap Y (0-3, 4 segments = 1024)
    if ay_hi = 255 then ay_hi = 1
    if ay_hi >= 2 then ay_hi = 0
    
@@ -1150,14 +1162,18 @@ spawn_asteroid
    rand_val = frame & 15  ; 0-15 for full angle range
    
    ; Use sin_table for X velocity component
-   temp_v = sin_ast[rand_val]
+   temp_v = sin_table[rand_val]
    ; Scale up for faster asteroids: multiply by 2 (shift values are -6..6 → -12..12)
    ; But 7800Basic doesn't have easy multiply, so just use table directly
    avx = temp_v
    
    ; Use cos_table for Y velocity component  
-   temp_v = cos_ast[rand_val]
+   temp_v = cos_table[rand_val]
    avy = temp_v
+   
+   ; Optionally boost speed based on level or randomness
+   ; Add slight speed variance (50% chance to be 50% faster)
+   if frame & 16 then avx = avx + avx / 2 : avy = avy + avy / 2
    
    return
 
@@ -1510,45 +1526,87 @@ y_ok
 next_r_simple
    next
    
-   if alife = 0 then a_on = 0 : return
+   if alife = 0 then a_on = 0 : goto boss_coords_check
    
    ; --- Asteroid X ---
    if ax_hi = 1 then goto ax_center
    if ax_hi = 0 then goto ax_left
-   a_on = 0 : return
+   a_on = 0 : goto boss_coords_check
 
 ax_center
    ax_scr = ax
-   if ax_scr > 176 then a_on = 0 : return
+   if ax_scr > 176 then a_on = 0 : goto boss_coords_check
    goto ax_ok
    
 ax_left
    ax_scr = ax
-   if ax_scr < 240 then a_on = 0 : return
+   if ax_scr < 240 then a_on = 0 : goto boss_coords_check
 
 ax_ok
 
    ; --- Asteroid Y ---
    if ay_hi = 1 then goto ay_center
    if ay_hi = 0 then goto ay_top
-   a_on = 0 : return
+   a_on = 0 : goto boss_coords_check
 
 ay_center
    ay_scr = ay
-   if ay_scr > 210 then a_on = 0 : return
+   if ay_scr > 210 then a_on = 0 : goto boss_coords_check
    goto ay_valid
 
 ay_top
    ay_scr = ay
-   if ay_scr < 224 then a_on = 0 : return  ; Allow 32px sprite to partially enter from bottom wrap
+   if ay_scr < 224 then a_on = 0 : goto boss_coords_check  ; Allow 32px sprite to fully enter (240-16=224 for safety)
 
 ay_valid
    
    a_on = 1
-   return
+   goto boss_coords_check
    
    ; Just use primitive following for now.
    ; screen_y = py - cam_y (approx)
+   goto boss_coords_check
+
+; --- Boss (Level 6) ---
+boss_coords_check
+   if current_level <> 6 then boss_on = 0 : return
+   if boss_state = 0 then boss_on = 0 : return
+   
+   ; Boss X
+   if boss_x_hi = 1 then goto boss_x_center
+   if boss_x_hi = 0 then goto boss_x_left
+   boss_on = 0 : return
+   
+boss_x_center
+   boss_scr_x = boss_x
+   ; Right edge: hide when fully offscreen (x > 160)
+   if boss_scr_x > 160 then boss_on = 0 : return
+   goto boss_x_ok
+   
+boss_x_left
+   boss_scr_x = boss_x
+   ; Left edge: allow partial (32px wide), hide below 224 (256-32)
+   if boss_scr_x < 224 then boss_on = 0 : return
+   
+boss_x_ok
+   ; Boss Y
+   if boss_y_hi = 1 then goto boss_y_center
+   if boss_y_hi = 0 then goto boss_y_top
+   boss_on = 0 : return
+   
+boss_y_center
+   boss_scr_y = boss_y
+   ; Bottom edge: prevent zone wrap (64px tall), hide when y > 120
+   if boss_scr_y > 172 then boss_on = 0 : return
+   goto boss_y_ok
+   
+boss_y_top
+   boss_scr_y = boss_y
+   ; Top edge: allow partial (64px tall), hide below 192 (256-64)
+   if boss_scr_y < 192 then boss_on = 0 : return
+   
+boss_y_ok
+   boss_on = 1
    return
 
 shift_universe
@@ -1589,6 +1647,20 @@ check_wrap_x_a
       if ax_hi = 255 then ax_hi = 1
       if ax_hi >= 2 then ax_hi = 0
 skip_shift_x_a
+
+   ; Boss (Level 6)
+   if boss_state = 0 then goto skip_shift_x_boss
+      temp_v = boss_x
+      boss_x = boss_x - temp_bx
+      if temp_bx >= 128 then goto shift_add_x_boss
+      if boss_x > temp_v then boss_x_hi = boss_x_hi - 1
+      goto check_wrap_x_boss
+shift_add_x_boss
+      if boss_x < temp_v then boss_x_hi = boss_x_hi + 1
+check_wrap_x_boss
+      if boss_x_hi = 255 then boss_x_hi = 1
+      if boss_x_hi >= 2 then boss_x_hi = 0
+skip_shift_x_boss
    
    ; Player Bullets (Screen Space - Do NOT shift, they have absolute velocity)
    ; Bullets move independently and are not affected by universe shift
@@ -1637,9 +1709,23 @@ next_shift_y_e
 shift_add_y_a
       if ay < temp_v then ay_hi = ay_hi + 1
 check_wrap_y_a
-      if ay_hi = 255 then ay_hi = 1
-      if ay_hi >= 2 then ay_hi = 0
+      if ay_hi = 255 then ay_hi = 3
+      if ay_hi >= 4 then ay_hi = 0
 skip_shift_y_a
+
+   ; Boss (Level 6)
+   if boss_state = 0 then goto skip_shift_y_boss
+      temp_v = boss_y
+      boss_y = boss_y - temp_by
+      if temp_by >= 128 then goto shift_add_y_boss
+      if boss_y > temp_v then boss_y_hi = boss_y_hi - 1
+      goto check_wrap_y_boss
+shift_add_y_boss
+      if boss_y < temp_v then boss_y_hi = boss_y_hi + 1
+check_wrap_y_boss
+      if boss_y_hi = 255 then boss_y_hi = 1
+      if boss_y_hi >= 2 then boss_y_hi = 0
+skip_shift_y_boss
    
    ; Player Bullets (Screen Space - No shift needed for independent velocity)
    ; Bullets already have their own velocity and should not inherit player movement
@@ -1696,15 +1782,6 @@ end
 
    data cos_table
    6, 6, 4, 2, 0, 254, 252, 250, 250, 250, 252, 254, 0, 2, 4, 6
-end
-
-   ; Slow Tables for Asteroids (Smooth 1-2 pixel steps)
-   data sin_ast
-   0, 1, 1, 2, 2, 2, 1, 1, 0, 255, 255, 254, 254, 254, 255, 255
-end
-
-   data cos_ast
-   3, 3, 2, 1, 0, 255, 254, 253, 253, 253, 254, 255, 0, 1, 2, 3
 end
    
    ; Player Laser Sound - High-pitched pew for player shots
@@ -1785,12 +1862,86 @@ skip_draw_enemy
 
 draw_asteroid
    if a_on = 0 then return
-   plotsprite asteroid_M_conv 2 ax_scr ay_scr
+   ; Offset by half height (16px) for proper centering
+   ; Use temp variable to avoid negative values causing syntax errors
+   temp_v = ay_scr
+   if temp_v >= 16 then temp_v = temp_v - 16 else temp_v = 0
+   plotsprite asteroid_M_conv 2 ax_scr temp_v
    return
 
 draw_boss
-   ; Static Test for Level 6
-   plotsprite Boss_conv 3 80 50
+   if boss_on = 0 then return
+   plotsprite Boss_conv 6 boss_scr_x boss_scr_y
+   return
+
+init_boss
+   ; Initialize Boss for Level 6
+   boss_x = 80 : boss_x_hi = 1      ; Center of world
+   boss_y = 50 : boss_y_hi = 1
+   boss_hp = 100                     ; Boss health
+   boss_state = 1                    ; Active state
+   
+   ; Set diagonal velocity (Down-Right by default)
+   ; Direction Testing:
+   ; Down-Right: bvx=2, bvy=2
+   ; Down-Left:  bvx=254, bvy=2
+   ; Up-Right:   bvx=2, bvy=254
+   ; Up-Left:    bvx=254, bvy=254
+   bvx = 2   ; Right (+)
+   bvy = 2   ; Down (+)
+   
+   boss_on = 0  ; Calculated by update_render_coords
+   
+   ; Set Boss Palette (P6)
+   P6C1 = $46 ; Red
+   P6C2 = $96 ; Blue
+   P6C3 = $0A ; Gray
+   return
+
+update_boss
+   if boss_state = 0 then return  ; Boss inactive
+   
+   ; Move Boss (16-bit World Coordinates)
+   ; X Axis
+   temp_v = bvx
+   if temp_v < 128 then goto boss_move_pos_x
+   
+   ; Negative X
+   temp_v = 0 - temp_v
+   temp_w = boss_x
+   boss_x = boss_x - temp_v
+   if boss_x > temp_w then boss_x_hi = boss_x_hi - 1
+   goto boss_x_done
+   
+boss_move_pos_x
+   boss_x = boss_x + temp_v
+   if boss_x < temp_v then boss_x_hi = boss_x_hi + 1
+   
+boss_x_done
+   ; Wrap X (0-1, 2 segments = 512)
+   if boss_x_hi = 255 then boss_x_hi = 1
+   if boss_x_hi >= 2 then boss_x_hi = 0
+   
+   ; Y Axis
+   temp_v = bvy
+   if temp_v < 128 then goto boss_move_pos_y
+   
+   ; Negative Y
+   temp_v = 0 - temp_v
+   temp_w = boss_y
+   boss_y = boss_y - temp_v
+   if boss_y > temp_w then boss_y_hi = boss_y_hi - 1
+   goto boss_y_done
+   
+boss_move_pos_y
+   boss_y = boss_y + temp_v
+   if boss_y < temp_v then boss_y_hi = boss_y_hi + 1
+   
+boss_y_done
+   ; Wrap Y (0-1, 2 segments = 512)
+   if boss_y_hi = 255 then boss_y_hi = 1
+   if boss_y_hi >= 2 then boss_y_hi = 0
+   
    return
 
 
@@ -1803,7 +1954,7 @@ level_complete
    screen_timer = 30 ; 30s timeout
    
    characterset alphabet_8_wide
-   alphachars ' ABCDEFGHIJKLMNOPQRSTUVWXYZ,!?,"$():'
+   alphachars ' ABCDEFGHIJKLMNOPQRSTUVWXYZ.!?,"$():'
    
    plotchars 'YOU DID IT' 1 40 2
    
@@ -1972,9 +2123,9 @@ set_level_config
    ; enemy_fire_cooldown: Frames between enemy shots
    ;   Higher = slower fire rate, Lower = rapid fire
    
-   if current_level = 1 then enemy_move_mask = 2 : enemy_fire_cooldown = 60 : asteroid_move_mask = 1 : asteroid_base_speed = 1
-   if current_level = 2 then enemy_move_mask = 1 : enemy_fire_cooldown = 45 : asteroid_move_mask = 0 : asteroid_base_speed = 1
-   if current_level = 3 then enemy_move_mask = 1 : enemy_fire_cooldown = 30 : asteroid_move_mask = 0 : asteroid_base_speed = 1
+   if current_level = 1 then enemy_move_mask = 2 : enemy_fire_cooldown = 60 : asteroid_move_mask = 3 : asteroid_base_speed = 1
+   if current_level = 2 then enemy_move_mask = 1 : enemy_fire_cooldown = 45 : asteroid_move_mask = 1 : asteroid_base_speed = 1
+   if current_level = 3 then enemy_move_mask = 1 : enemy_fire_cooldown = 30 : asteroid_move_mask = 1 : asteroid_base_speed = 1
    if current_level = 4 then enemy_move_mask = 0 : enemy_fire_cooldown = 25 : asteroid_move_mask = 0 : asteroid_base_speed = 1
    if current_level >= 5 then enemy_move_mask = 0 : enemy_fire_cooldown = 20 : asteroid_move_mask = 0 : asteroid_base_speed = 2
    return
@@ -2016,7 +2167,7 @@ you_lose
    screen_timer = 30 ; 30s timeout
    
    characterset alphabet_8_wide
-   alphachars ' ABCDEFGHIJKLMNOPQRSTUVWXYZ,!?,"$():'
+   alphachars ' ABCDEFGHIJKLMNOPQRSTUVWXYZ.!?,"$():'
    
    plotchars 'DO NOT GIVE UP' 1 30 4
    plotchars 'TRY AGAIN' 0 1 6

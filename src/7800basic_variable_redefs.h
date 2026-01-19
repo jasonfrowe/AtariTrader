@@ -243,6 +243,20 @@ star_y = $2500
  
 star_x = var80
  
+boss_on = $25BA
+ 
+boss_scr_y = $25B9
+ 
+boss_scr_x = $25B8
+ 
+boss_y_hi = $25B7
+ 
+boss_x_hi = $25B6
+ 
+bvy = $25B5
+ 
+bvx = $25B4
+ 
 boss_state = $25B3
  
 boss_hp = $25B2
