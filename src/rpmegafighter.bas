@@ -42,12 +42,9 @@
    incgraphic graphics/scoredigits_8_wide.png 160A
 
    ; Import Alphabet for Title Cards
-   alphachars ' !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~'
+   alphachars ' ABCDEFGHIJKLMNOPQRSTUVWXYZ,!?,"$():'
    incgraphic graphics/alphabet_8_wide.png 160A
    
-   alphachars '0123456789ABCDEF'
-   characterset scoredigits_8_wide
-
    ; ---- Dimensions ----
    dim px = var0
    dim py = var1
@@ -144,7 +141,7 @@
    dim music_active = $25AC ; 0=Stopped, 1=Playing
    dim music_ptr_lo = $25AA
    dim music_ptr_hi = $25AB
-   dim current_song = $25AD ; 1=Song_01, 2=Song_02
+   dim current_song = $25AF ; 1=Song_01, 2=Song_02 (Moved from 25AD conflict)
    
    
    ; ASM Driver uses dedicated ZP vars stolen from star array (unused slots)
@@ -187,7 +184,7 @@
 
 
 cold_start
-   screen_timer = 250 ; Approx 4s timeout
+   screen_timer = 30 ; 30s timeout (decremented by frame logic)
    music_active = 0 ; Ensure music state is clean
    ; Palette Setup
    P0C1=$26: P0C2=$24: P0C3=$04 ; Background/UI
@@ -244,8 +241,19 @@ title_loop
     
     ; Draw Title Graphic (Banner)
     plotbanner title_screen_conv 7 0 46
-    ; characterset scoredigits_8_wide
+    
+    ; Version Text (Bottom of Screen - Zone 11)
+    characterset alphabet_8_wide
+    ; Corrected alphachars based on user feedback
+    alphachars ' ABCDEFGHIJKLMNOPQRSTUVWXYZ,!?,"$():'
+    plotchars 'VERSION' 1 20 11
+    
+    ; Restore scoredigits just in case
+    alphachars '0123456789ABCDEF'
+    characterset scoredigits_8_wide
     plotchars 'ABCDE' 7 60 3
+    plotchars '20260118' 1 84 11
+    
     
     ; Play Music
     gosub PlayMusic
@@ -254,7 +262,10 @@ title_loop
     
     if joy0fire0 then goto init_game
     
-    screen_timer = screen_timer - 1
+    ; Timeout Logic (30 Seconds)
+    ; Use frame counter to tick seconds
+    frame = frame + 1
+    if frame >= 60 then frame = 0 : screen_timer = screen_timer - 1
     if screen_timer = 0 then goto init_game
     
     goto title_loop

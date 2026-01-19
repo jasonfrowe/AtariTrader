@@ -102,6 +102,7 @@ Variables manually allocated to the upper RAM block using `dim var = $Address`.
 | `$25AC` | `music_active` | Music Playing Flag | |
 | `$25AD` | `asteroid_move_mask` | Asteroid Speed Mask | |
 | `$25AE` | `asteroid_base_speed` | Asteroid Base Speed | |
+| `$25AF` | `current_song` | Current Song Index | 1=Song_01, 2=Song_02 |
 
 ---
 

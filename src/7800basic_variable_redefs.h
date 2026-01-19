@@ -187,7 +187,7 @@ music_zp_hi = var99
  
 music_zp_lo = var98
  
-current_song = $25AD
+current_song = $25AF
  
 music_ptr_hi = $25AB
  
