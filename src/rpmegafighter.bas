@@ -1,5 +1,7 @@
    set romsize 48k
    
+   set 7800header 'name Astro Wing Startfighter'
+
    displaymode 160A
    set doublewide on
    set pokeysupport on
@@ -258,7 +260,7 @@ cold_start
 title_loop
     ; Wait for button release first (prevent skipping from game over/win screens)
 title_release_wait
-    if joy0fire0 then goto title_release_wait
+    if joy0fire1 || joy0fire0 then goto title_release_wait
     
     clearscreen
     ; Reset critical sprite state to hide game objects
@@ -305,7 +307,7 @@ title_release_wait
     temp_v = (temp_v * 16) + 12
     P7C3 = temp_v
 
-    if joy0fire0 then goto restore_pal_story
+    if joy0fire1 then goto restore_pal_story
     
     ; Timeout Logic (30 Seconds)
     ; Use frame counter to tick seconds
@@ -352,7 +354,7 @@ story_loop
     drawscreen
     
     ; Wait for Button Release (Debounce)
-    if joy0fire0 then goto story_loop
+    if joy0fire1 then goto story_loop
     
 story_wait
     ; Keep Music Playing while waiting
@@ -366,7 +368,7 @@ story_wait
     drawscreen
     
     ; Wait for Button Press
-    if !joy0fire0 then goto story_wait
+    if !joy0fire1 then goto story_wait
     
 leave_story
     ; Restore Scoredigits for Main Game
@@ -482,8 +484,8 @@ main_loop
 
    ; ---- Firing Control ----
    if bcooldown > 0 then bcooldown = bcooldown - 1
-   ; joy0fire0 is the first button
-   if joy0fire0 && bcooldown = 0 then gosub fire_bullet
+   ; joy0fire1 is the first button
+   if joy0fire1 && bcooldown = 0 then gosub fire_bullet
 
    ; ---- Neutralize Forces ----
    gosub neutralize_forces
@@ -1200,59 +1202,52 @@ spawn_asteroid
    if rand_val > 5 then return
    
    alife = 1
-   ; Random edge - SPAWN OFF SCREEN
-   rand_val = frame & 3
-   if rand_val = 0 then ax = 230 : ay = 90  ; Left (80-106=-26)
-   if rand_val = 1 then ax = 190 : ay = 90  ; Right (80+110=190)
-   if rand_val = 2 then ax = 80 : ay = 230  ; Top (90-116=-26)
-   if rand_val = 3 then ax = 80 : ay = 220  ; Bottom (90+130=220)
    
-    ; Convert to World Coordinates
-    ; AX starts as Screen X (5, 155, 80). Center is 80.
-    ; Offset = AX - 80.
-    ; WorldX = Px + Offset.
-    temp_acc = ax - 80
-    temp_v = px + temp_acc
-    ax = temp_v
-    ax_hi = px_hi
-    if temp_acc >= 128 then if temp_v > px then ax_hi = ax_hi - 1
-    if temp_acc < 128 then if temp_v < px then ax_hi = ax_hi + 1
-    if ax_hi = 255 then ax_hi = 3  ; Handle -1 wrap FIRST
-    if ax_hi >= 4 then ax_hi = 0
-    
-    ; AY starts as Screen Y await (90, 5, 175). Center is 90.
-    ; Offset = AY - 90.
-    temp_acc = ay - 90
-    temp_v = py + temp_acc
-    ay = temp_v
-    ay_hi = py_hi
-    if temp_acc >= 128 then if temp_v > py then ay_hi = ay_hi - 1
-    if temp_acc < 128 then if temp_v < py then ay_hi = ay_hi + 1
-    if ay_hi >= 4 then ay_hi = 0
+   ; 1. Pick Random Angle (0-15)
+   ; Use inputs to ensure randomness (desync from frame counter)
+   rand_val = (frame + px + py) & 15
    
-   ; Random Velocity using sin/cos lookup tables for varied angles
-   ; Pick random angle (0-15) from frame counter
-   rand_val = frame & 15  ; 0-15 for full angle range
-   
-   ; Use sin_table for X velocity component
+   ; 2. Determine Velocity from Angle
    temp_v = sin_table[rand_val]
-   ; Scale up for faster asteroids: multiply by 2 (shift values are -6..6 → -12..12)
-   ; But 7800Basic doesn't have easy multiply, so just use table directly
-   avx = temp_v
+   avx = temp_v ; Base X speed
    
-   ; Use cos_table for Y velocity component  
-   temp_v = cos_table[rand_val]
-   avy = temp_v
+   temp_v = cos_table[rand_val] 
+   avy = temp_v ; Base Y speed
    
-   ; Optionally boost speed based on level or randomness
-   ; Add slight speed variance (50% chance to be 50% faster)
-   ; Optionally boost speed based on level or randomness
-   ; Add slight speed variance (50% chance to be 50% faster)
-   if frame & 16 then avx = avx + avx / 2 : avy = avy + avy / 2
+   ; Speed Variance (Random Boost)
+   if (frame & 16) > 0 then avx = avx + avx / 2 : avy = avy + avy / 2
    
-   ; Upper Level Speed Boost (Level 3+)
-   ; Double velocity to match boss speed (~2px/frame)
+   ; Level Scaling (Speed up on higher levels)
    if current_level >= 3 then avx = avx + avx : avy = avy + avy
+   
+   ; 3. Calculate Spawn Position "Upwind"
+   ; Place asteroid off-screen in the OPPOSITE direction of travel
+   ; logic: Start at PlayerPos, Subtract (Velocity * Scale)
+   
+   ; X Axis
+   ; Use shift by 4 (*16) to move it far enough approx 1 screen width
+   ; px - (avx * 16)
+   temp_v = px - (avx * 16)
+   temp_v = temp_v - (avx * 16) ; Twice for *32 distance
+   ax = temp_v
+   
+   ; Handle high byte (World wrapping)
+   ax_hi = px_hi
+   if ax < 50 && px > 200 then ax_hi = ax_hi + 1 ; Wrapped right
+   if ax > 200 && px < 50 then ax_hi = ax_hi - 1 ; Wrapped left
+   if ax_hi = 255 then ax_hi = 3
+   if ax_hi >= 4 then ax_hi = 0
+   
+   ; Y Axis
+   temp_v = py - (avy * 16)
+   temp_v = temp_v - (avy * 16)
+   ay = temp_v
+   
+   ay_hi = py_hi
+   if ay < 50 && py > 200 then ay_hi = ay_hi + 1
+   if ay > 200 && py < 50 then ay_hi = ay_hi - 1
+   if ay_hi = 255 then ay_hi = 3
+   if ay_hi >= 4 then ay_hi = 0
    
    return
 
@@ -2289,7 +2284,7 @@ level_complete
    
    ; Wait for button release
 level_complete_release
-   if joy0fire0 then goto level_complete_release
+   if joy0fire1 then goto level_complete_release
    
    ; Wait for button press with timeout
 level_complete_wait
@@ -2299,7 +2294,7 @@ level_complete_wait
    if frame >= 60 then frame = 0 : screen_timer = screen_timer - 1
    if screen_timer = 0 then goto level_next_restore
    
-   if !joy0fire0 then goto level_complete_wait
+   if !joy0fire1 then goto level_complete_wait
 
 level_next_restore
    ; Restore standard scoredigits mapping just in case
@@ -2369,21 +2364,46 @@ lose_life
 
    ; Wait for button release (Debounce)
 dying_wait_release
-   if joy0fire0 then goto dying_wait_release
+   if joy0fire1 then goto dying_wait_release
    
    screen_timer = 30 ; 30 second timeout
    frame = 0
    
    ; Wait for button press to restart
+   ; Wait for button press to restart
+   ; Wait for button press to restart
 dying_wait_press
-   drawscreen ; Keep generating VBLANK for timing
+   restorescreen
+   
+   ; Redraw Frozen Game State (Keep graphics visible)
+   gosub draw_stars
+   gosub draw_player_bullets
+   gosub draw_enemies
+   if alife > 0 then gosub draw_asteroid
+   if current_level = 6 then gosub draw_boss
+   gosub draw_enemy_bullets
+   
+   ; Draw final explosion frame (frame 7)
+   temp_val_hi = 7
+   plotsprite fighter_explode_07_conv 1 px_scr py_scr
+   
+   characterset alphabet_8_wide
+   alphachars ' ABCDEFGHIJKLMNOPQRSTUVWXYZ.!?,"$():'
+   plotchars 'SHIP DESTROYED' 1 24 3
+   plotchars 'PRESS FIRE'     0 40 7
+   
+   drawscreen
    
    frame = frame + 1
    if switchreset then goto cold_start
    if frame >= 60 then frame = 0 : screen_timer = screen_timer - 1
    if screen_timer = 0 then goto title_loop ; Timeout to title
    
-   if !joy0fire0 then goto dying_wait_press
+   if !joy0fire1 then goto dying_wait_press
+   
+   ; Restore Charset
+   alphachars '0123456789ABCDEF'
+   characterset scoredigits_8_wide
    
    goto restart_level
 
@@ -2398,12 +2418,15 @@ restart_level
 restart_level_common
    ; Common reset logic (used by init_level too)
    
-   ; Reset fighters based on current level
-   gosub set_level_fighters
-   fighters_bcd = converttobcd(fighters_remaining)
+   ; Reset Physics (Stop movement completely)
+   vx_p = 0 : vx_m = 0
+   vy_p = 0 : vy_m = 0
+   rx = 0 : ry = 0 : acc_mx = 0 : acc_my = 0 ; Clear accumulators
    
-   ; Initialize boss (Level 6) - Only force UI update logic
-   if current_level = 6 then cached_boss_hp = 255
+   ; Initialize boss (Level 6) - Reset HP on any restart (death or level start)
+   if current_level = 6 then gosub init_boss
+   
+   ; Reset prizes
    
    ; Reset prizes
    prize_active0 = 1
@@ -2436,6 +2459,15 @@ restart_level_common
    goto main_loop
 
 init_level
+   ; Initialize new level
+   
+   ; Set fighters for the new level
+   gosub set_level_fighters
+   fighters_bcd = converttobcd(fighters_remaining)
+   
+   gosub set_level_config
+   
+   goto restart_level_common
    ; Initialize new level
    if current_level = 6 then gosub init_boss
    
@@ -2489,7 +2521,7 @@ you_win_game
    drawscreen
    ; Wait for button release first
 you_win_release
-   if joy0fire0 then goto you_win_release
+   if joy0fire1 then goto you_win_release
    
    ; Now wait for new press
    screen_timer = 30 ; 30 Seconds
@@ -2501,7 +2533,7 @@ you_win_wait
    if screen_timer = 0 then goto cold_start
    
    drawscreen
-   if !joy0fire0 then goto you_win_wait
+   if !joy0fire1 then goto you_win_wait
    goto cold_start
 
 loose_life_check
@@ -2531,7 +2563,7 @@ you_lose
    
    ; Wait for button release
 you_lose_release
-   if joy0fire0 then goto you_lose_release
+   if joy0fire1 then goto you_lose_release
    
    ; Wait for button press with timeout
 you_lose_wait
@@ -2542,7 +2574,7 @@ you_lose_wait
    if frame >= 60 then frame = 0 : screen_timer = screen_timer - 1
    if screen_timer = 0 then goto game_over_restore
    
-   if !joy0fire0 then goto you_lose_wait
+   if !joy0fire1 then goto you_lose_wait
 
 game_over_restore
    ; Restore standard scoredigits mapping just in case
