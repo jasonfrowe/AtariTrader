@@ -2300,20 +2300,48 @@ level_next
 lose_life
    ; Shields depleted - lose a life
    player_lives = player_lives - 1
+   
+   ; Stop Music
+   gosub StopMusic
+   
+   ; Play Explosion Sound
+   playsfx 1
+   
+   ; Death Animation Loop (8 frames)
+   ; Use simple loop with frame delay
+   for temp_val_hi = 0 to 7
+      
+      ; Delay loop (use screen_timer to avoid clobbering by subroutines)
+      ; 10 frames per sprite = ~1.3 seconds total duration
+      for screen_timer = 0 to 10
+         restorescreen
+         
+         ; Draw Frozen Game State
+         gosub draw_stars
+         gosub draw_player_bullets
+         gosub draw_enemies
+         if alife > 0 then gosub draw_asteroid
+         if current_level = 6 then gosub draw_boss
+         gosub draw_enemy_bullets
+         
+         ; Draw Explosion Frame
+         ; Uses frame offset (temp_val_hi) from base sprite
+         plotsprite fighter_explode_00_conv 1 px_scr py_scr temp_val_hi
+         
+         drawscreen
+      next
+   next
+
    if player_lives <= 0 then goto you_lose
+
+   ; Wait for button release (Debounce)
+dying_wait_release
+   if joy0fire0 then goto dying_wait_release
    
-   ; Flash effect
-   BACKGRND=$44  ; Red = death
-   clearscreen
-   drawscreen
+   ; Wait for button press to restart
+dying_wait_press
+   if !joy0fire0 then goto dying_wait_press
    
-   ; Brief pause
-   temp_v = 0
-lose_life_pause
-   temp_v = temp_v + 1
-   if temp_v < 60 then goto lose_life_pause
-   
-   BACKGRND=$00
    goto restart_level
 
 restart_level
