@@ -279,7 +279,7 @@ title_release_wait
     ; Restore scoredigits just in case
     alphachars '0123456789ABCDEF'
     characterset scoredigits_8_wide
-    plotchars 'ABCDE' 7 60 3
+    plotchars 'ABCDE' 7 60 2
     plotchars '20260118' 1 84 11
     
     
@@ -368,7 +368,7 @@ init_game
     player_lives = 3  ; Start with 3 lives (display will show 2 hearts = 2 extra lives)
     
     ; Initialize Level
-    current_level = 6
+    current_level = 1
     
     ; Initialize UI cache (Bug Fix #3)
     ; Set to invalid values to force initial draw
@@ -2236,10 +2236,10 @@ level_complete
    plotchars 'REWARD:' 0 20 4
    
    if current_level = 1 then plotchars 'INCREASED FIREPOWER' 1 0 6
-   if current_level = 2 then plotchars 'INCREASED SPEED'     1 0 6
-   if current_level = 3 then plotchars 'MAX HEALTH UP'       1 0 6
-   if current_level = 4 then plotchars 'FASTER RECHARGE'     1 0 6
-   if current_level = 5 then plotchars 'EXTRA LIFE'          1 0 6
+   if current_level = 2 then plotchars '  INCREASED SPEED'   1 0 6
+   if current_level = 3 then plotchars '   MAX HEALTH UP'    1 0 6
+   if current_level = 4 then plotchars '  FASTER RECHARGE'   1 0 6
+   if current_level = 5 then plotchars '    EXTRA LIFE'      1 0 6
    
    ; Draw Prize Icon
    characterset scoredigits_8_wide
@@ -2391,6 +2391,8 @@ restart_level
 
 init_level
    ; Initialize new level
+   if current_level = 6 then gosub init_boss
+   
    gosub set_level_fighters
    fighters_bcd = converttobcd(fighters_remaining)
    
