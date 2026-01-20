@@ -1222,14 +1222,15 @@ spawn_asteroid
    
    ; 3. Calculate Spawn Position "Upwind"
    ; Place asteroid off-screen in the OPPOSITE direction of travel
-   ; logic: Start at PlayerPos, Subtract (Velocity * Scale)
+   ; Use FIXED offset (half screen + safety) to ensure off-screen spawn
+   ; regardless of velocity magnitude.
    
    ; X Axis
-   ; Use shift by 4 (*16) to move it far enough approx 1 screen width
-   ; px - (avx * 16)
-   temp_v = px - (avx * 16)
-   temp_v = temp_v - (avx * 16) ; Twice for *32 distance
-   ax = temp_v
+   temp_v = 120 ; Safety margin (Screen is 160 wide, center 80. 80+120=200 Offscreen)
+   if avx >= 0 then temp_v = 0 - 120 ; Moving Right -> Spawn Left (-40)
+   ; If avx < 0 (Moving Left) -> Spawn Right (+200)
+   
+   ax = px + temp_v
    
    ; Handle high byte (World wrapping)
    ax_hi = px_hi
@@ -1239,9 +1240,10 @@ spawn_asteroid
    if ax_hi >= 4 then ax_hi = 0
    
    ; Y Axis
-   temp_v = py - (avy * 16)
-   temp_v = temp_v - (avy * 16)
-   ay = temp_v
+   temp_v = 120
+   if avy >= 0 then temp_v = 0 - 120 ; Moving Down -> Spawn Top
+   
+   ay = py + temp_v
    
    ay_hi = py_hi
    if ay < 50 && py > 200 then ay_hi = ay_hi + 1
@@ -2422,6 +2424,8 @@ restart_level_common
    vx_p = 0 : vx_m = 0
    vy_p = 0 : vy_m = 0
    rx = 0 : ry = 0 : acc_mx = 0 : acc_my = 0 ; Clear accumulators
+   angle = 0 : rot_timer = 0 ; Reset orientation
+   shpfr = 0 ; Reset sprite frame
    
    ; Initialize boss (Level 6) - Reset HP on any restart (death or level start)
    if current_level = 6 then gosub init_boss
