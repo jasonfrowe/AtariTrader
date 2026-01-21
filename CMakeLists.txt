@@ -1,9 +1,10 @@
 cmake_minimum_required(VERSION 3.20)
-project(AtariTrader
+project(Astrowing
     VERSION 1.0.0
-    DESCRIPTION "Atari 7800 Trading Game using 7800basic"
+    DESCRIPTION "Atari 7800 Space Fighter Game (Astrowing) using 7800basic"
     LANGUAGES NONE
 )
+
 
 # Set 7800basic installation directory
 if(NOT DEFINED BASIC7800_DIR)
@@ -71,10 +72,11 @@ endfunction()
 # Add main game target
 # (Removed - Legacy moved to archive)
 
-# Add rpmegafighter target
-if(EXISTS ${CMAKE_SOURCE_DIR}/src/rpmegafighter.bas)
-    add_7800basic_target(rpmegafighter src/rpmegafighter.bas)
+# Add astrowing target
+if(EXISTS ${CMAKE_SOURCE_DIR}/src/astrowing.bas)
+    add_7800basic_target(astrowing src/astrowing.bas)
 endif()
+
 
 # Add sample programs
 # (Removed - Samples are reference only)
@@ -95,7 +97,7 @@ install(DIRECTORY ${BUILD_OUTPUT_DIR}/
 )
 
 # CPack configuration for packaging
-set(CPACK_PACKAGE_NAME "AtariTrader")
+set(CPACK_PACKAGE_NAME "Astrowing")
 set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY ${PROJECT_DESCRIPTION})
 set(CPACK_RESOURCE_FILE_README "${CMAKE_SOURCE_DIR}/README.md")
