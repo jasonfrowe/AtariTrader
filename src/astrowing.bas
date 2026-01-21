@@ -1538,10 +1538,6 @@ skip_s2
 skip_s3
    return
 
-
-
-...
-
 cycle_stars
    ; Twinkle every 8 frames
    if (frame & 7) > 0 then return
