@@ -282,7 +282,7 @@ title_release_wait
     alphachars '0123456789ABCDEF'
     characterset scoredigits_8_wide
     plotchars 'ABCDE' 7 60 2
-    plotchars '20260119' 1 84 11
+    plotchars '20260120' 1 84 11
     
     
     ; Play Music
@@ -1152,10 +1152,12 @@ spawn_asteroid
    rand_val = frame & 127
    if rand_val > 5 then return
    
-   alife = 1
+   ; Initialize safe off-screen position first (Upwind in Segment 0)
+   ax = 128 : ax_hi = 0
+   ay = 128 : ay_hi = 0
+   ax_scr = 240 : ay_scr = 240
    
    ; 1. Pick Random Angle (0-15)
-   ; Use inputs to ensure randomness (desync from frame counter)
    rand_val = (frame + px + py) & 15
    
    ; 2. Determine Velocity from Angle
@@ -1171,21 +1173,10 @@ spawn_asteroid
    ; Level Scaling (Speed up on higher levels)
    if current_level >= 3 then avx = avx + avx : avy = avy + avy
    
-   ; 3. Calculate Spawn Position "Upwind"
-   ; Place asteroid off-screen in the OPPOSITE direction of travel
-   ; Use FIXED offset (half screen + safety) to ensure off-screen spawn
-   ; regardless of velocity magnitude.
-   
-   ; X Axis
-   ax = 128 : ax_hi = 0 ; Hardcoded Safe Spawn (Page 0)
-   
-   ; Y Axis
-   temp_v = 120
-   ay = 128 : ay_hi = 0
-   
-   ; Logic removed
-   
+   ; 4. Finalize Life
+   alife = 1
    return
+
 
 check_collisions
    ; 1. Bullets vs Enemies
@@ -1605,42 +1596,44 @@ y_ok
 next_r_simple
    next
    
-   if alife = 0 then a_on = 0 : goto boss_coords_check
-   
-   ; --- Asteroid X ---
-   if ax_hi = 1 then goto ax_center
-   if ax_hi = 0 then goto ax_left
-   a_on = 0 : goto boss_coords_check
+    a_on = 0
+    if alife = 0 then goto boss_coords_check
 
-ax_center
-   ax_scr = ax
-   if ax_scr > 160 then a_on = 0 : goto boss_coords_check
-   goto ax_ok
-   
-ax_left
-   ax_scr = ax
-   if ax_scr < 224 then a_on = 0 : goto boss_coords_check
+    ; --- Asteroid Visibility ---
+    if ax_hi = 1 then goto a_x_c
+    if ax_hi = 0 then goto a_x_l
+    goto boss_coords_check
 
-ax_ok
+a_x_c
+    ax_scr = ax
+    if ax_scr > 170 then goto boss_coords_check
+    goto a_x_done
 
-   ; --- Asteroid Y ---
-   if ay_hi = 1 then goto ay_center
-   if ay_hi = 0 then goto ay_top
-   a_on = 0 : goto boss_coords_check
+a_x_l
+    ax_scr = ax
+    if ax_scr < 230 then goto boss_coords_check
 
-ay_center
-   ay_scr = ay
-   if ay_scr > 192 then a_on = 0 : goto boss_coords_check
-   goto ay_valid
+a_x_done
+    ; X is valid. Check Y.
+    if ay_hi = 1 then goto a_y_c
+    if ay_hi = 0 then goto a_y_t
+    goto boss_coords_check
 
-ay_top
-   ay_scr = ay
-   if ay_scr < 192 then a_on = 0 : goto boss_coords_check
+a_y_c
+    ay_scr = ay
+    if ay_scr > 192 then goto boss_coords_check
+    goto a_y_done
 
-ay_valid
-   
-   a_on = 1
-   goto boss_coords_check
+a_y_t
+    ay_scr = ay
+    if ay_scr < 192 then goto boss_coords_check
+
+a_y_done
+    ; Both Visible!
+    a_on = 1
+    goto boss_coords_check
+
+
    
    ; Just use primitive following for now.
    ; screen_y = py - cam_y (approx)
@@ -1748,6 +1741,7 @@ shift_add_x_boss
 check_wrap_x_boss
       if boss_x_hi = 255 then boss_x_hi = 1
       if boss_x_hi >= 2 then boss_x_hi = 0
+
 skip_shift_x_boss
    
    ; Player Bullets (Screen Space - Do NOT shift, they have absolute velocity)
@@ -1783,8 +1777,8 @@ skip_shift_x
 shift_add_y_e
       if ey[iter] < temp_v then ey_hi[iter] = ey_hi[iter] + 1
 check_wrap_y_e
-      if ey_hi[iter] = 255 then ey_hi[iter] = 3
-      if ey_hi[iter] >= 4 then ey_hi[iter] = 0
+      if ey_hi[iter] = 255 then ey_hi[iter] = 1
+      if ey_hi[iter] >= 2 then ey_hi[iter] = 0
 next_shift_y_e
    next
    
@@ -1798,8 +1792,9 @@ next_shift_y_e
 shift_add_y_a
       if ay < temp_v then ay_hi = ay_hi + 1
 check_wrap_y_a
-      if ay_hi = 255 then ay_hi = 3
-      if ay_hi >= 4 then ay_hi = 0
+      if ay_hi = 255 then ay_hi = 1
+      if ay_hi >= 2 then ay_hi = 0
+
 skip_shift_y_a
 
    ; Boss (Level 6)
@@ -2522,22 +2517,19 @@ end
    return
 
 PlayMusic
+   if !(frame & 1) then return
    asm
    ; Check if initialized (high byte != 0)
    lda music_ptr_hi
    bne .SetupPtr
    
    ; Initialize pointer based on current_level
-   ; Song_01: Title (level 0), Levels 2, 5
-   ; Song_02: Levels 1, 3, 4
-   ; Song_03: Level 6 (Boss)
-   
    lda current_level
    cmp #6
+   beq .UseBoss
+   cmp #3
    beq .UseSong3
    cmp #1
-   beq .UseSong2
-   cmp #3
    beq .UseSong2
    cmp #4
    beq .UseSong2
@@ -2549,6 +2541,15 @@ PlayMusic
    lda #<Song_01_Data
    sta music_ptr_lo
    lda #>Song_01_Data
+   sta music_ptr_hi
+   jmp .SetupPtr
+
+.UseBoss:
+   lda #4
+   sta current_song
+   lda #<Song_Boss_Data
+   sta music_ptr_lo
+   lda #>Song_Boss_Data
    sta music_ptr_hi
    jmp .SetupPtr
 
@@ -2610,6 +2611,8 @@ PlayMusic
 .EndSong:
    ; Reset pointer based on current_song variable
    lda current_song
+   cmp #4
+   beq .LoopBoss
    cmp #3
    beq .LoopSong3
    cmp #2
@@ -2621,6 +2624,13 @@ PlayMusic
    lda #>Song_01_Data
    sta music_ptr_hi
    rts
+
+.LoopSong3:
+   lda #<Song_03_Data
+   sta music_ptr_lo
+   lda #>Song_03_Data
+   sta music_ptr_hi
+   rts
    
 .LoopSong2:
    lda #<Song_02_Data
@@ -2629,10 +2639,10 @@ PlayMusic
    sta music_ptr_hi
    rts
 
-.LoopSong3:
-   lda #<Song_03_Data
+.LoopBoss:
+   lda #<Song_Boss_Data
    sta music_ptr_lo
-   lda #>Song_03_Data
+   lda #>Song_Boss_Data
    sta music_ptr_hi
    rts
 end
@@ -2642,13 +2652,15 @@ end
    ; Song_02: Levels 1,3,4
    asm
 Song_01_Data:
-   incbin "music/Song_01.bin"
-   .byte $FE ; Safety Terminator (Loop Song)
+   incbin "music/Song_01_30hz.bin"
    
 Song_02_Data:
-   incbin "music/Song_02.bin"
+   incbin "music/Song_02_30hz.bin"
 
 Song_03_Data:
-   incbin "music/Boss.bin"
-   .byte $FE ; Safety Terminator (Loop Song)
+   incbin "music/Song_03_30hz.bin"
+
+Song_Boss_Data:
+   incbin "music/Boss_30hz.bin"
 end
+
