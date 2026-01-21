@@ -15,8 +15,8 @@ You are the pilot of the **M-78 Starfighter**, the most advanced ship in the fle
 
 But be warned: The **asteroid fields** are treacherous, and the **Empire's Guardians** are waiting.
 
-### 📸 Sector Preview
-![Astrowing Gameplay](./docs/Astrowing_screenshot.png)
+### 📸 Title Screen Preview
+![Astrowing Title Screen](./docs/Astrowing_screenshot.png)
 
 ---
 
