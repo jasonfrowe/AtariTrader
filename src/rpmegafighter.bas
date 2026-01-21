@@ -320,62 +320,13 @@ title_release_wait
 
 restore_pal_story
    P7C1=$C8: P7C2=$46: P7C3=$1C
-   goto story_loop
+   goto init_game
 
 restore_pal_game
    P7C1=$C8: P7C2=$46: P7C3=$1C
    goto init_game
 
-story_loop
-    screen_timer = 30 ; 30s timeout
-    clearscreen
-    alife=0
-    
-    ; Setup Text
-    characterset alphabet_8_wide
-    alphachars ' ABCDEFGHIJKLMNOPQRSTUVWXYZ.!?,"$():'
-    
-    ; Premise (Zones 0-11)
-    plotchars 'YOU ARE ON A MISSION' 1 0 1
-    plotchars 'TO RETRIEVE RELICS'   1 0 2 ; Palette 0 (Grey)
-    plotchars 'THAT POWER UP YOUR'   1 0 3
-    plotchars 'SHIP'                 1 0 4
-    
-    plotchars 'EACH ARTIFACT WILL'   0 0 6
-    plotchars 'INCREASE YOUR POWER'  0 0 7
-    
-    plotchars 'DESTROY ENEMY WAVES'  1 0 9
-    plotchars 'TO GET EACH RELIC'    1 0 10
-    plotchars 'AND DEFEAT EVIL'      1 0 11
-    
-    ; Play Music (Continue from Title)
-    gosub PlayMusic
-    
-    drawscreen
-    
-    ; Wait for Button Release (Debounce)
-    if joy0fire1 then goto story_loop
-    
-story_wait
-    ; Keep Music Playing while waiting
-    gosub PlayMusic
-    
-    ; Timeout Logic (30 Seconds)
-    frame = frame + 1
-    if frame >= 60 then frame = 0 : screen_timer = screen_timer - 1
-    if screen_timer = 0 then goto leave_story
-    
-    drawscreen
-    
-    ; Wait for Button Press
-    if !joy0fire1 then goto story_wait
-    
-leave_story
-    ; Restore Scoredigits for Main Game
-    alphachars '0123456789ABCDEF'
-    characterset scoredigits_8_wide
-    
-    goto init_game
+
 
 init_game
      ; Clear any previous screen content (title, story, etc)
@@ -1735,6 +1686,15 @@ boss_y_top
    
 boss_y_ok
    boss_on = 1
+   
+   ; --- Fighter Spawning ---
+   if boss_fighter_timer > 0 then boss_fighter_timer = boss_fighter_timer - 1
+   if boss_fighter_timer = 0 then gosub attempt_boss_spawn_fighter
+   
+   ; --- Asteroid Throwing ---
+   if boss_asteroid_cooldown > 0 then boss_asteroid_cooldown = boss_asteroid_cooldown - 1
+   if boss_asteroid_cooldown = 0 then if boss_on = 1 then gosub boss_throw_asteroid
+
    return
 
 shift_universe
@@ -2137,17 +2097,6 @@ boss_y_done
    if boss_y_hi = 255 then boss_y_hi = 1
    if boss_y_hi >= 2 then boss_y_hi = 0
    
-   if boss_y_hi = 255 then boss_y_hi = 1
-   if boss_y_hi >= 2 then boss_y_hi = 0
-   
-   ; --- Fighter Spawning ---
-   if boss_fighter_timer > 0 then boss_fighter_timer = boss_fighter_timer - 1
-   if boss_fighter_timer = 0 then gosub attempt_boss_spawn_fighter
-   
-   ; --- Asteroid Throwing ---
-   if boss_asteroid_cooldown > 0 then boss_asteroid_cooldown = boss_asteroid_cooldown - 1
-   if boss_asteroid_cooldown = 0 then if boss_on = 1 then gosub boss_throw_asteroid
-   
    return
 
 attempt_boss_spawn_fighter
@@ -2462,20 +2411,7 @@ init_level
    gosub set_level_config
    
    goto restart_level_common
-   ; Initialize new level
-   if current_level = 6 then gosub init_boss
-   
-   gosub set_level_fighters
-   fighters_bcd = converttobcd(fighters_remaining)
-   
-   ; Set level difficulty (speed/fire rate)
-   gosub set_level_config
-   
-   prize_active2 = 1
-   prize_active3 = 1
-   prize_active4 = 1
-   
-   goto restart_level_common
+
 
 set_level_fighters
    ; Set fighter count based on level
@@ -2530,13 +2466,7 @@ you_win_wait
    if !joy0fire1 then goto you_win_wait
    goto cold_start
 
-loose_life_check
-   ; Legacy - redirects to lose_life
-   goto lose_life
 
-round_reset
-   ; Legacy - redirects to restart_level
-   goto restart_level
 
 you_lose
    ; Game Over - no lives left
