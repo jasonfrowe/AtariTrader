@@ -903,8 +903,6 @@ apply_y_done
 skip_firing_chance
        goto enemy_logic_done
 
-
-   
 update_explosion_state
    elife[iter] = elife[iter] - 1
    if elife[iter] = 1 then elife[iter] = 0 ; Done, set to Dead
@@ -915,7 +913,7 @@ try_spawn_enemy
        rand_val = frame & 127
        if rand_val > 5 then goto enemy_logic_done
        
-do_spawn
+do_spawn_boss_fighter
        
        ; Spawn logic inline
        elife[iter] = 1
@@ -1260,9 +1258,6 @@ skip_bullet_coll
 skip_p_e
    next
    
-   ; Fall through to check_asteroid_coll
-   
-check_asteroid_coll
    ; Only check if visible
    if a_on = 0 then goto check_player_ebul
 
@@ -1407,7 +1402,6 @@ check_player_ebul
 skip_ebul_coll
    next
 
-check_boss_collisions
    ; Only check if Level 6 and boss is active
    if current_level <> 6 then goto coll_done
    if boss_state = 0 then goto coll_done
@@ -1883,13 +1877,8 @@ refresh_static_ui
     temp_by = 11
     temp_w = 5
     gosub draw_bar_graph
-    
-skip_boss_loop
-
-skip_boss_loop
 
 skip_boss_ui
-    
     ; 3. Draw Player Shield (Unified Font Bar)
     ; Shield 0-100. Max width ~80px (8 blocks)
     ; Scaling: (shield * 2) / 3 -> 100 becomes 66 pixels
@@ -2148,7 +2137,6 @@ attempt_boss_spawn_fighter
    boss_fighter_timer = 30
    return
 
-do_spawn_boss_fighter
    elife[iter] = 1
    evx[iter] = 0 : evy[iter] = 0
    
@@ -2266,13 +2254,9 @@ level_complete_wait
    if !joy0fire1 then goto level_complete_wait
 
 level_next_restore
-
-level_next
-   
    ; Reward Check
    if current_level = 5 then player_lives = player_lives + 1
 
-   ; Advance to next level
    ; Advance to next level
    current_level = current_level + 1
    cached_level = current_level  ; Update cache for optimized UI (Bug Fix #3)
