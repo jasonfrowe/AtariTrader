@@ -42,7 +42,7 @@
    
    ; Define custom mapping for scoredigits (0-9 + A-F)
    incgraphic graphics/unified_font.png 160A 0 1 2 3
-   alphachars ' 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ.!?,"$():*+-/<>'
+   alphachars '0123456789 ABCDEFGHIJKLMNOPQRSTUVWXYZ.!?,"$():*+-/<>'
    
    ; ---- Dimensions ----
    dim px = var0
@@ -122,10 +122,9 @@
    dim boss_fighter_timer = $25BB ; Timer for fighter spawning
    
    ; Safety Buffer 76-79
-   
-   ; Starfield Variables (20 stars)
+      ; Starfield Variables (4 stars used)
    ; Moved to var80+ to prevent memory corruption from scratch vars
-   dim star_x = var80 ; 80-99
+   dim star_x = var80 ; 80-83 (Array [4]) - No conflict with music_zp at var98
    dim star_y = $2500 ; 2500-2519
    dim star_c = $2520 ; 2520-2539
    dim sc1 = $2544
@@ -550,40 +549,6 @@ main_loop
     
     ; Fighters Remaining (Right, Red, Palette 5)
     plotvalue unified_font 5 fighters_bcd 2 104 0
-    
-    ; DEBUG: Display World Coords Comparison (Player vs Enemy 0)
-    ; Zone 1: PxHi ExHi[0] PyHi EyHi[0]
-    ; a = converttobcd(px_hi)
-    ; plotvalue unified_font 2 a 1 10 9
-    
-    ; b = converttobcd(ex_hi) ; ex_hi[0]
-    ; plotvalue unified_font 2 b 1 40 9
-    
-    ; c = converttobcd(py_hi)
-    ; plotvalue unified_font 2 c 1 80 9
-    
-    ; d = converttobcd(ey_hi) ; ey_hi[0]
-    ; plotvalue unified_font 2 d 1 110 9
-
-    ; Row 2: Low Bytes (Px Ex[0] Py Ey[0])
-    ; v = px 
-    ; e   = converttobcd(v)
-    ; plotvalue unified_font 3 e 2 10 10
-    
-    ; v = ex
-    ; f = converttobcd(v)
-    ; v = ex
-    ; f = converttobcd(v)
-    ; plotvalue unified_font 3 f 2 40 10
-    
-    ; w = py
-    ; e = converttobcd(w)
-    ; plotvalue unified_font 3 e 2 80 10
-    
-    ; w = ey
-    ; f = converttobcd(w)
-    ; plotvalue unified_font 3 f 2 110 10
-
 
     ; Use cached screen position
     plotsprite sprite_spaceship1 5 px_scr py_scr shpfr
