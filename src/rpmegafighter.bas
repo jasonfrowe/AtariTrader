@@ -260,7 +260,7 @@ cold_start
 title_loop
     ; Wait for button release first (prevent skipping from game over/win screens)
 title_release_wait
-    if joy0fire1 || joy0fire0 then goto title_release_wait
+    if joy0fire1 then goto title_release_wait
     
     clearscreen
     ; Reset critical sprite state to hide game objects
@@ -468,7 +468,7 @@ main_loop
    
    ; score_p = cam_x ; DEBUG
    ; score_e = px    ; DEBUG
-
+   
    ; ---- Frame Counter ----
    frame = frame + 1
    
@@ -1226,30 +1226,13 @@ spawn_asteroid
    ; regardless of velocity magnitude.
    
    ; X Axis
-   temp_v = 120 ; Safety margin (Screen is 160 wide, center 80. 80+120=200 Offscreen)
-   if avx >= 0 then temp_v = 0 - 120 ; Moving Right -> Spawn Left (-40)
-   ; If avx < 0 (Moving Left) -> Spawn Right (+200)
-   
-   ax = px + temp_v
-   
-   ; Handle high byte (World wrapping)
-   ax_hi = px_hi
-   if ax < 50 && px > 200 then ax_hi = ax_hi + 1 ; Wrapped right
-   if ax > 200 && px < 50 then ax_hi = ax_hi - 1 ; Wrapped left
-   if ax_hi = 255 then ax_hi = 3
-   if ax_hi >= 4 then ax_hi = 0
+   ax = 128 : ax_hi = 0 ; Hardcoded Safe Spawn (Page 0)
    
    ; Y Axis
    temp_v = 120
-   if avy >= 0 then temp_v = 0 - 120 ; Moving Down -> Spawn Top
+   ay = 128 : ay_hi = 0
    
-   ay = py + temp_v
-   
-   ay_hi = py_hi
-   if ay < 50 && py > 200 then ay_hi = ay_hi + 1
-   if ay > 200 && py < 50 then ay_hi = ay_hi - 1
-   if ay_hi = 255 then ay_hi = 3
-   if ay_hi >= 4 then ay_hi = 0
+   ; Logic removed
    
    return
 
@@ -1680,12 +1663,12 @@ next_r_simple
 
 ax_center
    ax_scr = ax
-   if ax_scr > 176 then a_on = 0 : goto boss_coords_check
+   if ax_scr > 160 then a_on = 0 : goto boss_coords_check
    goto ax_ok
    
 ax_left
    ax_scr = ax
-   if ax_scr < 240 then a_on = 0 : goto boss_coords_check
+   if ax_scr < 224 then a_on = 0 : goto boss_coords_check
 
 ax_ok
 
@@ -1696,12 +1679,12 @@ ax_ok
 
 ay_center
    ay_scr = ay
-   if ay_scr > 210 then a_on = 0 : goto boss_coords_check
+   if ay_scr > 192 then a_on = 0 : goto boss_coords_check
    goto ay_valid
 
 ay_top
    ay_scr = ay
-   if ay_scr < 224 then a_on = 0 : goto boss_coords_check  ; Allow 32px sprite to fully enter (240-16=224 for safety)
+   if ay_scr < 192 then a_on = 0 : goto boss_coords_check
 
 ay_valid
    
@@ -1816,7 +1799,8 @@ skip_shift_x_boss
    next
 
    ; Stars (Screen Wrap 0-160)
-   for iter = 0 to 19
+   ; FIX: Loop only 0-3 (4 stars) to match array size and prevent var84+ corruption
+   for iter = 0 to 3
       star_x[iter] = star_x[iter] - temp_bx
       if star_x[iter] > 160 && star_x[iter] < 240 then star_x[iter] = 0
       if star_x[iter] >= 240 then star_x[iter] = 159
@@ -1881,7 +1865,7 @@ skip_shift_y_boss
    next
    
    ; Stars (Screen Wrap 0-192)
-   for iter = 0 to 19
+   for iter = 0 to 3
       star_y[iter] = star_y[iter] - temp_by
       if star_y[iter] > 192 && star_y[iter] < 240 then star_y[iter] = 0
       if star_y[iter] >= 240 then star_y[iter] = 191
@@ -2426,6 +2410,7 @@ restart_level_common
    rx = 0 : ry = 0 : acc_mx = 0 : acc_my = 0 ; Clear accumulators
    angle = 0 : rot_timer = 0 ; Reset orientation
    shpfr = 0 ; Reset sprite frame
+   frame = 0 ; Reset frame counter for clean start
    
    ; Initialize boss (Level 6) - Reset HP on any restart (death or level start)
    if current_level = 6 then gosub init_boss
