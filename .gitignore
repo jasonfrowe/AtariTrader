@@ -4,14 +4,20 @@
 build/
 bin/
 output/
-*.a78
-*.bin
-*.asm
-*.lst
-*.sym
-*.list.txt
-*.symbol.txt
-*temp.bas
+/src/*.a78
+/src/*.bin
+/src/*.asm
+/src/*.lst
+/src/*.sym
+/src/*.list.txt
+/src/*.symbol.txt
+/src/*temp.bas
+
+# Explicitly include assets needed for build
+!/src/music/*.bin
+!/src/graphics/*.png
+!/src/graphics/*.aseprite
+
 
 # 7800basic temporary files
 7800.asm
@@ -48,14 +54,20 @@ desktop.ini
 *.tmp
 *~
 
-# Junk
-junk/
+# Extra folders (root only)
+/samples/
+/archive/
+/graphics/
+/images/
+/cfg/
+/junk/
+/releases/
+/src/junk/
+/src/graphics/asteroid_render.png
+/src/graphics/lives_icon.png
+/src/graphics/spaceship.png
 
-samples/
-archive/
-graphics/
-images/
-cfg/
+
 
 CMakePresets.json
 CMakeUserPresets.json   
