@@ -355,7 +355,10 @@ rotate_music
    boss_asteroid_cooldown = 0
    asteroid_timer = 0
    
-   if current_song = 1 then current_song = 2 else current_song = 1
+   ; Cycle through all 3 songs: 1 → 2 → 3 → 1
+   current_song = current_song + 1
+   if current_song > 3 then current_song = 1
+   
    gosub StopMusic
    music_ptr_hi = 0
    gosub PlayMusic
@@ -2903,6 +2906,8 @@ PlayMusic
     
     ; Title Screen (Level 0) - Support Rotation
     lda current_song
+    cmp #3
+    beq .UseSong3
     cmp #2
     beq .UseSong2
     jmp .UseSong1
