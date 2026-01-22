@@ -2,7 +2,8 @@
    
    set 7800header 'name Astro Wing Startfighter'
 
-   set hssupport $4157
+   ; set hssupport $4157
+   set zoneheight 16
 
    displaymode 160A
    set doublewide on
@@ -206,7 +207,7 @@ cold_start
 reset_release_wait
    if switchreset then goto reset_release_wait
    
-   screen_timer = 30 ; 30s timeout (decremented by frame logic)
+   screen_timer = 60 ; 1s input delay
    music_active = 0 ; Ensure music state is clean
 
    ; Palette Setup
@@ -313,8 +314,8 @@ title_reset_wait
     if switchreset then goto title_reset_wait
     goto restore_pal_game
 title_no_reset
-
-    if frame >= 60 then frame = 0 
+    if screen_timer > 0 then screen_timer = screen_timer - 1
+    if screen_timer > 0 then goto title_loop
     
     goto title_loop
 
@@ -2219,7 +2220,7 @@ level_complete
    clearscreen
    BACKGRND=$00
    
-   screen_timer = 30 ; 30s timeout
+   screen_timer = 60 ; 1s input delay
       
    plotchars 'YOU DID IT' 1 40 2
    
@@ -2251,7 +2252,8 @@ level_complete_wait
    drawscreen ; Sync to 60Hz
    
    frame = frame + 1
-   if frame >= 60 then frame = 0
+   if screen_timer > 0 then screen_timer = screen_timer - 1
+   if screen_timer > 0 then goto level_complete_wait
    
    if !joy0fire1 then goto level_complete_wait
 
@@ -2311,7 +2313,7 @@ lose_life
 dying_wait_release
    if joy0fire1 then goto dying_wait_release
    
-   screen_timer = 30 ; 30 second timeout
+   screen_timer = 60 ; 1s input delay
    frame = 0
    
    ; Wait for button press to restart
@@ -2339,7 +2341,8 @@ dying_wait_press
    
    frame = frame + 1
    if switchreset then goto cold_start
-   if frame >= 60 then frame = 0
+   if screen_timer > 0 then screen_timer = screen_timer - 1
+   if screen_timer > 0 then goto dying_wait_press
    
    if !joy0fire1 then goto dying_wait_press
    
@@ -2459,12 +2462,13 @@ you_win_release
    if joy0fire1 then goto you_win_release
    
    ; Now wait for new press
-   screen_timer = 30 ; 30 Seconds
+   screen_timer = 60 ; 1s input delay
    frame = 0
 you_win_wait
    frame = frame + 1
    if switchreset then goto cold_start
-   if frame >= 60 then frame = 0
+   if screen_timer > 0 then screen_timer = screen_timer - 1
+   if screen_timer > 0 then goto you_win_wait 
    
    drawscreen
    if !joy0fire1 then goto you_win_wait
@@ -2478,7 +2482,7 @@ you_lose
    clearscreen
    BACKGRND=$00
    
-   screen_timer = 30 ; 30s timeout
+   screen_timer = 60 ; 1s input delay
    
    plotchars 'DO NOT GIVE UP'   1 24 4
    plotchars 'TRY AGAIN'        0 44 6
@@ -2496,7 +2500,11 @@ you_lose_wait
    
    frame = frame + 1
    if switchreset then goto game_over_restore
-   if frame >= 60 then frame = 0
+   
+   if screen_timer > 0 then screen_timer = screen_timer - 1
+   if screen_timer > 0 then goto you_lose_wait
+   
+   if !joy0fire1 then goto you_lose_wait
    
    if !joy0fire1 then goto you_lose_wait
 
