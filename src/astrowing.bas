@@ -368,7 +368,7 @@ init_game
     player_lives = 3  ; Start with 3 lives (display will show 2 hearts = 2 extra lives)
     
     ; Initialize Level
-    current_level = 1
+    current_level = 6
     
     ; Initialize UI cache (Bug Fix #3)
     ; Set to invalid values to force initial draw
@@ -1443,6 +1443,11 @@ skip_ebul_coll
        if boss_hp < 1 then boss_hp = 0 else boss_hp = boss_hp - 1
        playsfx sfx_damage 0
        score0 = score0 + 10
+       
+       ; Check Phase Thresholds (75, 50, 25)
+       if boss_hp <= 75 && boss_state = 4 then boss_state = 3 : gosub teleport_boss
+       if boss_hp <= 50 && boss_state = 3 then boss_state = 2 : gosub teleport_boss
+       if boss_hp <= 25 && boss_state = 2 then boss_state = 1 : gosub teleport_boss
   ; Check for boss death
       if boss_hp <= 0 then goto boss_defeated
       
@@ -1689,14 +1694,7 @@ boss_y_top
    
 boss_y_ok
    boss_on = 1
-   
-   ; --- Fighter Spawning ---
-   if boss_fighter_timer > 0 then boss_fighter_timer = boss_fighter_timer - 1
-   if boss_fighter_timer = 0 then gosub attempt_boss_spawn_fighter
-   
-   ; --- Asteroid Throwing ---
-   if boss_asteroid_cooldown > 0 then boss_asteroid_cooldown = boss_asteroid_cooldown - 1
-   if boss_asteroid_cooldown = 0 then if boss_on = 1 then gosub boss_throw_asteroid
+   return
 
    return
 
@@ -2073,11 +2071,23 @@ draw_boss
 
 init_boss
    ; Initialize Boss for Level 6
-   boss_x = 80 : boss_x_hi = 1      ; Center of world
-   boss_y = 50 : boss_y_hi = 1
    boss_hp = 100                     ; Boss health
-   boss_state = 1                    ; Active state
+   boss_state = 4                    ; Active state (Phase 4..1)
    
+   gosub teleport_boss
+   
+   boss_on = 0  ; Calculated by update_render_coords
+   
+   ; Set Boss Palette (P6)
+   P6C1 = $46 ; Red
+   P6C2 = $96 ; Blue
+   P6C3 = $0A ; Gray
+   
+   boss_fighter_timer = 60 ; Initial delay (1s)
+   boss_asteroid_cooldown = 120 ; 2 second initial delay
+   return
+
+teleport_boss
    ; Randomize Boss Position (Ensure off-screen)
 boss_spawn_retry
    
@@ -2104,23 +2114,64 @@ boss_spawn_retry
    if temp_v < 100 then goto boss_spawn_retry
 
 boss_pos_ok
-   bvx = 0   ; Stationary
-   bvy = 0   ; Stationary
-   
-   boss_on = 0  ; Calculated by update_render_coords
-   
-   ; Set Boss Palette (P6)
-   P6C1 = $46 ; Red
-   P6C2 = $96 ; Blue
-   P6C3 = $0A ; Gray
-   
-   boss_fighter_timer = 60 ; Initial delay (1s)
-   boss_asteroid_cooldown = 120 ; 2 second initial delay
+   bvx = 0   ; Stationary initially
+   bvy = 0   ; Stationary initially (will be updated by AI)
    return
+
 
 update_boss
    if boss_state = 0 then return  ; Boss inactive
    
+   ; --- AI Movement Logic ---
+   ; Goal: Align with player on ONE axis (min delta), Retreat on OTHER axis
+   
+   ; Calculate Deltas (Screen/World)
+   ; Use simple 8-bit wrap logic on low bytes usually suffices if hi bytes match
+   ; But we have 512 world.
+   
+   ; Check world alignment first
+   ; X Logic
+   temp_v = 0 ; Chase X flag
+   temp_acc = 0 ; Chase Y flag
+   
+   ; Calculate Distances
+   dim dist_x = var90
+   dim dist_y = var91
+   
+   dist_x = boss_x - px
+   if dist_x >= 128 then dist_x = 0 - dist_x
+   
+   dist_y = boss_y - py
+   if dist_y >= 128 then dist_y = 0 - dist_y
+   
+   ; Decide Axis: Attack the closest axis (Smallest Delta)
+   if dist_x < dist_y then goto ai_attack_x
+   
+   ; AI Attack Y (Align Y, Retreat X)
+   ; Align Y
+   if py > boss_y then bvy = 1 else bvy = 255
+   
+   ; Retreat X (Move AWAY from player)
+   if px > boss_x then bvx = 255 else bvx = 1
+   goto ai_move_done
+   
+ai_attack_x
+   ; Attack X (Align X, Retreat Y)
+   ; Align X
+   if px > boss_x then bvx = 1 else bvx = 255
+   
+   ; Retreat Y
+   if py > boss_y then bvy = 255 else bvy = 1
+   
+ai_move_done
+
+   ; --- Timers ---
+   if boss_fighter_timer > 0 then boss_fighter_timer = boss_fighter_timer - 1
+   if boss_fighter_timer = 0 then gosub attempt_boss_spawn_fighter
+   
+   if boss_asteroid_cooldown > 0 then boss_asteroid_cooldown = boss_asteroid_cooldown - 1
+   if boss_asteroid_cooldown = 0 then if boss_on = 1 then gosub boss_throw_asteroid
+
    ; Move Boss (16-bit World Coordinates)
    ; X Axis
    temp_v = bvx
@@ -2217,31 +2268,30 @@ boss_throw_asteroid
    if temp_v < boss_y then ay_hi = ay_hi + 1
    if ay_hi >= 2 then ay_hi = 0
    
-   ; Aim at player - simple direction-based approach
    ; X velocity
    if px_hi = ax_hi then goto same_x_quad_throw
    ; Different X quadrants
-   if px_hi > ax_hi then avx = 8 else avx = 248
+   if px_hi > ax_hi then avx = 3 else avx = 253 ; Speed 3
    goto calc_y_vel_throw
    
 same_x_quad_throw
    temp_acc = px - ax
    if temp_acc >= 128 then temp_acc = 0 - temp_acc
    if temp_acc < 10 then avx = 0 : goto calc_y_vel_throw
-   if px > ax then avx = 8 else avx = 248
+   if px > ax then avx = 3 else avx = 253 ; Speed 3
    
 calc_y_vel_throw
    ; Y velocity
    if py_hi = ay_hi then goto same_y_quad_throw
    ; Different Y quadrants
-   if py_hi > ay_hi then avy = 8 else avy = 248
+   if py_hi > ay_hi then avy = 3 else avy = 253 ; Speed 3
    goto throw_done
    
 same_y_quad_throw
    temp_acc = py - ay
    if temp_acc >= 128 then temp_acc = 0 - temp_acc
    if temp_acc < 10 then avy = 0 : goto throw_done
-   if py > ay then avy = 8 else avy = 248
+   if py > ay then avy = 3 else avy = 253 ; Speed 3
    
 throw_done
    boss_asteroid_cooldown = 120 ; 2 second cooldown

@@ -117,6 +117,10 @@ sprite_spaceship2_width = $04
 sprite_spaceship1_mode = $00
 sprite_spaceship1_width_twoscompliment = $1c
 sprite_spaceship1_width = $04
+dist_y = var91
+ 
+dist_x = var90
+ 
 py_hi = $2571
  
 px_hi = $2570
