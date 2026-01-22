@@ -1680,14 +1680,14 @@ boss_coords_check
    
 boss_x_center
    boss_scr_x = boss_x
-   ; Right edge: hide when fully offscreen (x > 160)
-   if boss_scr_x > 160 then boss_on = 0 : return
+   ; Right edge: hide when fully offscreen (x > 160 + 10 margin)
+   if boss_scr_x > 170 then boss_on = 0 : return
    goto boss_x_ok
    
 boss_x_left
    boss_scr_x = boss_x
-   ; Left edge: allow partial (32px wide), hide below 224 (256-32)
-   if boss_scr_x < 224 then boss_on = 0 : return
+   ; Left edge: allow partial (32px wide), hide below 224 - 10 margin = 214
+   if boss_scr_x < 214 then boss_on = 0 : return
    
 boss_x_ok
    ; Boss Y
