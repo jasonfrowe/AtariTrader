@@ -272,6 +272,10 @@ reset_release_wait
    ; Camera Removed
    ; Global Coords Only
 
+   ; Initialize music rotation timer (2 minutes = 7200 frames)
+   asteroid_timer = 0
+   boss_asteroid_cooldown = 0
+
 title_loop
     ; Wait for button release first (prevent skipping from game over/win screens)
 title_release_wait
@@ -294,10 +298,6 @@ title_release_wait
     plotchars '*+-/<' 7 60 1
     plotchars '20260122' 1 84 11
     
-    
-    ; Play Music
-    gosub PlayMusic
-    
     drawscreen
     
     ; Hue Cycle Animation (Safe calculation)
@@ -319,7 +319,7 @@ title_release_wait
 
     if joy0fire1 then goto restore_pal_story
     
-    ; Timeout Logic (30 Seconds) -> Changed to Music Rotation (4 Minutes)
+    ; Music Rotation Timer (2 Minutes)
    ; Use frame counter to tick seconds
    frame = frame + 1
    
@@ -328,6 +328,8 @@ title_release_wait
    if asteroid_timer = 0 then boss_asteroid_cooldown = boss_asteroid_cooldown + 1 ; Hi Byte
    
    if boss_asteroid_cooldown >= 28 then gosub rotate_music
+
+    gosub PlayMusic ; Continue music playback (allows rotation to take effect)
 
     if !switchreset then goto title_no_reset
 title_reset_wait
