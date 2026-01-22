@@ -2,6 +2,8 @@
    
    set 7800header 'name Astro Wing Startfighter'
 
+   set hssupport $4157
+
    displaymode 160A
    set doublewide on
    set pokeysupport on
