@@ -413,6 +413,8 @@ init_game
    gosub draw_lives
    gosub draw_treasures
    savescreen  ; Save static UI elements
+   
+   screen_timer = 120 ; 2 second delay for ready message (First Start)
 
 main_loop
    clearscreen
@@ -423,6 +425,11 @@ main_loop
    
    ; ---- Frame Counter ----
    frame = frame + 1
+
+   ; ---- Level Start Delay ----
+   if screen_timer > 0 then screen_timer = screen_timer - 1
+   if screen_timer > 0 then plotchars 'GET READY' 5 54 8
+
    
    if switchreset then goto cold_start
 
@@ -489,6 +496,9 @@ main_loop
    ; ---- Bullet Update ----
    gosub update_bullets
 
+   ; ---- Level Start Delay (Skip Enemy Logic) ----
+   if screen_timer > 0 then goto skip_enemy_updates
+
    ; ---- Enemy Update ----
    if ecooldown > 0 then ecooldown = ecooldown - 1
    gosub update_enemy
@@ -504,6 +514,9 @@ main_loop
 
    ; ---- Collisions ----
    gosub check_collisions
+   
+skip_enemy_updates
+
    ; Check for Game State Changes (Stack Safe)
    if fighters_remaining <= 0 then goto level_complete
    if player_shield <= 0 then goto lose_life
@@ -2355,6 +2368,7 @@ restart_level
    
 restart_level_common
    ; Common reset logic (used by init_level too)
+   screen_timer = 120 ; 2 second delay before enemies spawn
    
    ; Reset Physics (Stop movement completely)
    vx_p = 0 : vx_m = 0
