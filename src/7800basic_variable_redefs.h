@@ -4825,6 +4825,7 @@ sprite_spaceship1_color3 = $1e
 sprite_spaceship1_color2 = $81
 sprite_spaceship1_color1 = $44
 sprite_spaceship1_color0 = $00
+pokeyaddress = $450
 pokeysupport = 1
 pokeysupport = 1
 DOUBLEWIDE = 1

@@ -7,7 +7,7 @@
 
    displaymode 160A
    set doublewide on
-   set pokeysupport on
+   set pokeysupport $450
  
    ; Import graphics
    incgraphic graphics/sprite_spaceship1.png
@@ -292,7 +292,7 @@ title_release_wait
     characterset unified_font
     plotchars 'VERSION' 1 20 11
     plotchars '*+-/<' 7 60 1
-    plotchars '20260121' 1 84 11
+    plotchars '20260122' 1 84 11
     
     
     ; Play Music
