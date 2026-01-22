@@ -262,15 +262,21 @@ star_y = $2500
  
 star_x = var80
  
-boss_checkpoint = $255F
+boss_checkpoint = $256C
  
-boss_acc_y = $255E
+boss_acc_y = $256B
  
-boss_acc_x = $255D
+boss_acc_x = $256A
+ 
+boss_osc_y = $2569
+ 
+boss_osc_x = $2568
  
 boss_fighter_timer = $25BB
  
 boss_on = $25BA
+ 
+ready_flag = $254E
  
 boss_scr_y = $25B9
  

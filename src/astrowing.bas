@@ -126,11 +126,14 @@
    dim boss_y_hi = $25B7     ; Boss Y High Byte (World)
    dim boss_scr_x = $25B8    ; Boss Screen X (Cached)
    dim boss_scr_y = $25B9    ; Boss Screen Y (Cached)
+   dim ready_flag = $254E    ; Level start ready flag (1=waiting, 0=active)
    dim boss_on = $25BA       ; Boss Visible Flag
    dim boss_fighter_timer = $25BB ; Timer for fighter spawning
-   dim boss_acc_x = $255D ; Boss Sub-pixel X
-   dim boss_acc_y = $255E ; Boss Sub-pixel Y
-   dim boss_checkpoint = $255F ; Boss Health Gate (0=Full, 1=Half)
+   dim boss_osc_x = $2568 ; Targeting Oscillation X
+   dim boss_osc_y = $2569 ; Targeting Oscillation Y
+   dim boss_acc_x = $256A ; Boss Sub-pixel X
+   dim boss_acc_y = $256B ; Boss Sub-pixel Y
+   dim boss_checkpoint = $256C ; Boss Health Gate (0=Full, 1=Half)
    
    ; Safety Buffer 76-79
       ; Starfield Variables (4 stars used)
@@ -324,7 +327,7 @@ title_release_wait
    asteroid_timer = asteroid_timer + 1 ; Lo Byte
    if asteroid_timer = 0 then boss_asteroid_cooldown = boss_asteroid_cooldown + 1 ; Hi Byte
    
-   if boss_asteroid_cooldown >= 56 then gosub rotate_music
+   if boss_asteroid_cooldown >= 28 then gosub rotate_music
 
     if !switchreset then goto title_no_reset
 title_reset_wait
@@ -376,7 +379,7 @@ init_game
     player_lives = 3  ; Start with 3 lives (display will show 2 hearts = 2 extra lives)
     
     ; Initialize Level
-    current_level = 6
+    current_level = 1
     boss_checkpoint = 0 ; Reset Health Gate
     
     ; Initialize UI cache (Bug Fix #3)
@@ -443,7 +446,8 @@ init_game
    gosub draw_treasures
    savescreen  ; Save static UI elements
    
-   screen_timer = 120 ; 2 second delay for ready message (First Start)
+   ready_flag = 2
+
 
 main_loop
    clearscreen
@@ -455,9 +459,14 @@ main_loop
    ; ---- Frame Counter ----
    frame = frame + 1
 
-   ; ---- Level Start Delay ----
-   if screen_timer > 0 then screen_timer = screen_timer - 1
-   if screen_timer > 0 then plotchars 'GET READY' 5 44 8
+   ; ---- Level Start Button Wait ----
+   if ready_flag > 0 then plotchars 'PRESS FIRE' 5 40 8 : plotchars 'TO START' 5 48 9
+   
+   if ready_flag = 2 then if !joy0fire1 then ready_flag = 1
+   if ready_flag = 1 then if joy0fire1 then ready_flag = 0
+   if ready_flag > 0 then goto skip_enemy_updates
+
+ready_done
 
    
    if switchreset then goto cold_start
@@ -525,8 +534,7 @@ main_loop
    ; ---- Bullet Update ----
    gosub update_bullets
 
-   ; ---- Level Start Delay (Skip Enemy Logic) ----
-   if screen_timer > 0 then goto skip_enemy_updates
+   ; (Button wait logic handled above)
 
    ; ---- Enemy Update ----
    if ecooldown > 0 then ecooldown = ecooldown - 1
@@ -2237,30 +2245,39 @@ update_boss
    if boss_asteroid_cooldown > 0 then boss_asteroid_cooldown = boss_asteroid_cooldown - 1
    if boss_asteroid_cooldown = 0 then if boss_on = 1 then gosub boss_throw_asteroid
    
-   ; --- Oscillation Logic ---
-   ; Create triangular wave (-16 to +15) period ~64 frames
-   temp_acc = (frame / 2) & 63
-   if temp_acc > 31 then temp_acc = 63 - temp_acc
-   temp_acc = temp_acc - 16
+   ; --- Target Oscillation (32px Radius) ---
+   temp_acc = frame & 127
+   if temp_acc > 63 then temp_acc = 127 - temp_acc
+   boss_osc_x = temp_acc - 32
    
-   temp_w = temp_acc ; Alignment Offset
+   temp_acc = (frame + 32) & 127
+   if temp_acc > 63 then temp_acc = 127 - temp_acc
+   boss_osc_y = temp_acc - 32
 
    ; --- AI Movement Logic (Wrap Aware) ---
    ; Only move if visible
    if boss_on = 0 then bvx = 0 : bvy = 0 : goto ai_move_exec
 
-   ; Calculate Signed Deltas (Normalized)
+   ; Calculate Target Coords (Player + Oscillation)
+   temp_v = boss_osc_x
+   var90 = px + temp_v
+   var91 = px_hi
+   if temp_v < 128 then if var90 < px then var91 = var91 + 1
+   if temp_v >= 128 then if var90 > px then var91 = var91 - 1
+   
+   temp_v = boss_osc_y
+   var92 = py + temp_v
+   var93 = py_hi
+   if temp_v < 128 then if var92 < py then var93 = var93 + 1
+   if temp_v >= 128 then if var92 > py then var93 = var93 - 1
+
+   ; Calculate Signed Deltas to Boss Position
    
    ; X Delta
-   var90 = px - boss_x
-   var91 = px_hi - boss_x_hi
-   if px < boss_x then var91 = var91 - 1
-   
-   ; Apply Offset to X (if Aligning X)
-   ; But we apply oscillation only to the Alignment Axis. 
-   ; Which axis is alignment? Smallest Delta.
-   ; We don't know yet. Apply to both? No, that makes it circle.
-   ; Let's just calculate raw first.
+   temp_v = var90
+   var90 = var90 - boss_x
+   var91 = var91 - boss_x_hi
+   if temp_v < boss_x then var91 = var91 - 1
    
    ; Center Alignment Offset X: -8
    temp_v = var90
@@ -2272,9 +2289,10 @@ update_boss
    if var91 = 254 then var91 = 0
    
    ; Y Delta
-   var92 = py - boss_y
-   var93 = py_hi - boss_y_hi
-   if py < boss_y then var93 = var93 - 1
+   temp_v = var92
+   var92 = var92 - boss_y
+   var93 = var93 - boss_y_hi
+   if temp_v < boss_y then var93 = var93 - 1
    
    ; Center Alignment Offset Y: -24
    temp_v = var92
@@ -2488,12 +2506,27 @@ boss_throw_asteroid
    if temp_v < boss_y then ay_hi = ay_hi + 1
    if ay_hi >= 2 then ay_hi = 0
    
-   ; Aim at player (Wrap Aware)
+   ; Aim at Dynamic Target (Player + Oscillation)
    
-   ; X Delta: (px+8) - (ax+8) = px - ax
-   var90 = px - ax
-   var91 = px_hi - ax_hi
-   if px < ax then var91 = var91 - 1
+   ; Target X
+   temp_v = boss_osc_x
+   var90 = px + temp_v
+   var91 = px_hi
+   if temp_v < 128 then if var90 < px then var91 = var91 + 1
+   if temp_v >= 128 then if var90 > px then var91 = var91 - 1
+
+   ; Target Y
+   temp_v = boss_osc_y
+   var92 = py + temp_v
+   var93 = py_hi
+   if temp_v < 128 then if var92 < py then var93 = var93 + 1
+   if temp_v >= 128 then if var92 > py then var93 = var93 - 1
+
+   ; X Delta: Target - ax
+   temp_v = var90
+   var90 = var90 - ax
+   var91 = var91 - ax_hi
+   if temp_v < ax then var91 = var91 - 1
    
    ; Normalize X
    if var91 = 1 then var91 = 255
@@ -2503,10 +2536,11 @@ boss_throw_asteroid
    if var91 = 0 && var90 > 10 then avx = 10
    if var91 = 255 then temp_v = 0 - var90 : if temp_v > 10 then avx = 246
    
-   ; Y Delta: (py+8) - (ay+16) = py - ay - 8
-   var92 = py - ay
-   var93 = py_hi - ay_hi
-   if py < ay then var93 = var93 - 1
+   ; Y Delta: Target - ay
+   temp_v = var92
+   var92 = var92 - ay
+   var93 = var93 - ay_hi
+   if temp_v < ay then var93 = var93 - 1
    
    ; Apply Y Offset for center-to-center alignment
    temp_v = var92
@@ -2675,7 +2709,8 @@ restart_level
    
 restart_level_common
    ; Common reset logic (used by init_level too)
-   screen_timer = 120 ; 2 second delay before enemies spawn
+   ready_flag = 2
+
    
    ; Reset Physics (Stop movement completely)
    vx_p = 0 : vx_m = 0

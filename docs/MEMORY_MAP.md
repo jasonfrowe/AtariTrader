@@ -67,6 +67,7 @@ Variables manually allocated to the upper RAM block using `dim var = $Address`.
 | `$254B` | `player_lives` | Player Lives | |
 | `$254C` | `rand_val` | Random Seed/Val | |
 | `$254D` | `screen_timer` | Screen Timeout Timer | |
+| `$254E` | `ready_flag` | Level Start Ready Flag | 2=Wait Release, 1=Wait Press, 0=Active |
 | `$2550` | `ax` | Asteroid X (Low) | |
 | `$2551` | `ay` | Asteroid Y (Low) | |
 | `$2552` | `avx` | Asteroid Vel X | |
@@ -80,8 +81,16 @@ Variables manually allocated to the upper RAM block using `dim var = $Address`.
 | `$255A` | `boss_asteroid_cooldown` | Boss Asteroid Cooldown | Boss throw cooldown |
 | `$255B` | `ast_acc_x` | Asteroid Accumulator X | Sub-pixel movement |
 | `$255C` | `ast_acc_y` | Asteroid Accumulator Y | Sub-pixel movement |
+| `$255D` | `acc_bx` | Boss Physics Acc X (Removed?) | Moved to 256A |
+| `$255E` | `acc_by` | Boss Physics Acc Y (Removed?) | Moved to 256B |
+| `$255F` | `boss_checkpoint` | Boss Health Gate (BCD?) | Moved to 256C |
 | `$2560-2563` | `ebul_vy` | Enemy Bullet Vel Y | Array [4] |
 | `$2564-2567` | `eblife` | Enemy Bullet Lifes | Array [4] |
+| `$2568` | `boss_osc_x` | Boss Oscillation X | |
+| `$2569` | `boss_osc_y` | Boss Oscillation Y | |
+| `$256A` | `boss_acc_x` | Boss Accumulator X | |
+| `$256B` | `boss_acc_y` | Boss Accumulator Y | |
+| `$256C` | `boss_checkpoint` | Boss Health Gate | |
 | `$2570` | `px_hi` | Player X (High Byte) | |
 | `$2571` | `py_hi` | Player Y (High Byte) | |
 | `$2580-2583` | `bul_x_hi` | Player Bullet X (High) | Unused? (Defined for World) |
@@ -101,6 +110,18 @@ Variables manually allocated to the upper RAM block using `dim var = $Address`.
 | `$25A3` | `enemy_fire_cooldown`| AI Config | |
 | `$25A4` | `current_level` | Current Level | |
 | `$25A5-25A9` | `prize_active0-4` | Prize Flags | |
+| `$25B0` | `boss_x` | Boss World X (Low) | |
+| `$25B1` | `boss_y` | Boss World Y (Low) | |
+| `$25B2` | `boss_hp` | Boss Health | |
+| `$25B3` | `boss_state` | Boss State | 4..1 |
+| `$25B4` | `bvx` | Boss Velocity X | |
+| `$25B5` | `bvy` | Boss Velocity Y | |
+| `$25B6` | `boss_x_hi` | Boss World X (High) | |
+| `$25B7` | `boss_y_hi` | Boss World Y (High) | |
+| `$25B8` | `boss_scr_x` | Boss Screen X | Cached |
+| `$25B9` | `boss_scr_y` | Boss Screen Y | Cached |
+| `$25BA` | `boss_on` | Boss Visible Flag | |
+| `$25BB` | `boss_fighter_timer`| Boss Spawn Timer | |
 | `$25AA` | `music_ptr_lo` | Music Pointer (Low) | **ASM Usage** |
 | `$25AB` | `music_ptr_hi` | Music Pointer (High) | **ASM Usage** |
 | `$25AC` | `music_active` | Music Playing Flag | |
