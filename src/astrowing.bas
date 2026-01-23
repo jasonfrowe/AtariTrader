@@ -1871,6 +1871,7 @@ check_wrap_y_bf
       if bfy_hi[iter] = 255 then bfy_hi[iter] = 1
       if bfy_hi[iter] >= 2 then bfy_hi[iter] = 0
 next_shift_y_bf
+   next
    
    ; Asteroid
    if alife = 0 then goto skip_shift_y_a
