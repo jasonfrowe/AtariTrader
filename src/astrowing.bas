@@ -547,6 +547,10 @@ ready_done
    
    if temp_w > 0 then temp_by = 0 - temp_w
    
+   ; ---- Blue Fighter Update (BEFORE shift) ----
+   ; Self-movement must commit first so shift_universe sees updated state
+   gosub update_blue_fighters
+   
    ; Apply Shift to Universe
    if temp_bx <> 0 || temp_by <> 0 then gosub shift_universe
 
@@ -569,8 +573,7 @@ ready_done
    ; ---- Boss Update (Level 6) ----
    if current_level = 6 then gosub update_boss
    
-   ; ---- Blue Fighter Update ----
-   gosub update_blue_fighters
+   ; Blue Fighter update now runs BEFORE shift_universe (see above)
 
    ; ---- Collisions ----
    gosub check_collisions
@@ -3140,22 +3143,16 @@ bf_spawn_y
    bfby[iter] = bfy[iter]  ; Set base Y for wave motion
    return
 update_blue_fighters
-   ; Update both Blue Fighters (separate pool)
-   ; DISABLED: Self-movement for debugging scroll behavior
+   ; Update both Blue Fighters (runs BEFORE shift_universe)
+   ; Uses proper overflow detection: if new < old, then wrapped
    for iter = 0 to 1
       if bflife[iter] = 0 then goto next_bf
       
-      ; Horizontal Movement DISABLED for testing
-      ; if (frame & 1) = 0 then bfx[iter] = bfx[iter] + 1
-      ; if bfx[iter] = 0 then bfx_hi[iter] = bfx_hi[iter] + 1
-      ; if bfx_hi[iter] = 255 then bfx_hi[iter] = 1
-      ; if bfx_hi[iter] >= 2 then bfx_hi[iter] = 0
+      ; Horizontal Movement (right, 0.5 px/frame)
+      if (frame & 1) = 0 then temp_v = bfx[iter] : bfx[iter] = bfx[iter] + 1 : if bfx[iter] < temp_v then bfx_hi[iter] = bfx_hi[iter] + 1 : if bfx_hi[iter] >= 2 then bfx_hi[iter] = 0
       
-      ; Vertical Movement DISABLED for testing
-      ; if (frame & 3) = 0 then bfy[iter] = bfy[iter] + 1
-      ; if bfy[iter] = 0 then bfy_hi[iter] = bfy_hi[iter] + 1
-      ; if bfy_hi[iter] = 255 then bfy_hi[iter] = 1
-      ; if bfy_hi[iter] >= 2 then bfy_hi[iter] = 0
+      ; Vertical Movement (down, 0.25 px/frame)
+      if (frame & 3) = 0 then temp_v = bfy[iter] : bfy[iter] = bfy[iter] + 1 : if bfy[iter] < temp_v then bfy_hi[iter] = bfy_hi[iter] + 1 : if bfy_hi[iter] >= 2 then bfy_hi[iter] = 0
       
 next_bf
    next
