@@ -81,6 +81,15 @@ Variables manually allocated to the upper RAM block using `dim var = $Address`.
 | `$255A` | `boss_asteroid_cooldown` | Boss Asteroid Cooldown | Boss throw cooldown |
 | `$255B` | `ast_acc_x` | Asteroid Accumulator X | Sub-pixel movement |
 | `$255C` | `ast_acc_y` | Asteroid Accumulator Y | Sub-pixel movement |
+| `$25D8-25D9` | `bfx` | Blue Fighter X (Low) | Separate pool [2] |
+| `$25DA-25DB` | `bfy` | Blue Fighter Y (Low) | Separate pool [2] |
+| `$25DC-25DD` | `bflife` | Blue Fighter Life | Separate pool [2] |
+| `$25DE-25DF` | `bfx_hi` | Blue Fighter X (High) | Separate pool [2] |
+| `$25E0-25E1` | `bfy_hi` | Blue Fighter Y (High) | Separate pool [2] |
+| `$25E2-25E3` | `bfby` | Blue Fighter Base Y | Wave motion baseline |
+| `$25E4-25E5` | `bfx_scr` | Blue Fighter Screen X | Cached render |
+| `$25E6-25E7` | `bfy_scr` | Blue Fighter Screen Y | Cached render |
+| `$25E8-25E9` | `bf_on` | Blue Fighter Visible | Visibility flags |
 | `$255D` | `acc_bx` | Boss Physics Acc X (Removed?) | Moved to 256A |
 | `$255E` | `acc_by` | Boss Physics Acc Y (Removed?) | Moved to 256B |
 | `$255F` | `boss_checkpoint` | Boss Health Gate (BCD?) | Moved to 256C |

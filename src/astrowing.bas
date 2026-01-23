@@ -29,6 +29,7 @@
    
    incgraphic graphics/bullet_conv.png
    incgraphic graphics/fighter_conv.png
+   incgraphic graphics/blue_fighter.png
    ; Explosion Frames (Split for animation)
    incgraphic graphics/fighter_explode_00_conv.png
    incgraphic graphics/fighter_explode_01_conv.png
@@ -190,6 +191,17 @@
    dim boss_asteroid_cooldown = $255A ; Cooldown for boss asteroid throws (Safe address)
    dim ast_acc_x = $255B ; Asteroid sub-pixel accumulator X
    dim ast_acc_y = $255C ; Asteroid sub-pixel accumulator Y
+   
+   ; Blue Fighter Variables (Separate Pool of 2)
+   dim bfx = $25D8      ; 25D8-25D9 - Blue Fighter X (Low)
+   dim bfy = $25DA      ; 25DA-25DB - Blue Fighter Y (Low)
+   dim bflife = $25DC   ; 25DC-25DD - Blue Fighter Life (0=dead, 1=alive)
+   dim bfx_hi = $25DE   ; 25DE-25DF - Blue Fighter X (High)
+   dim bfy_hi = $25E0   ; 25E0-25E1 - Blue Fighter Y (High)
+   dim bfby = $25E2     ; 25E2-25E3 - Blue Fighter Base Y (wave motion)
+   dim bfx_scr = $25E4  ; 25E4-25E5 - Blue Fighter Screen X (cached)
+   dim bfy_scr = $25E6  ; 25E6-25E7 - Blue Fighter Screen Y (cached)
+   dim bf_on = $25E8    ; 25E8-25E9 - Blue Fighter Visible Flag
    
    ; Aliases for plotsprite usage
    dim bul_x0 = var18 : dim bul_x1 = var19 : dim bul_x2 = var20 : dim bul_x3 = var21
@@ -444,6 +456,9 @@ init_game
    ; Clear enemies
    elife[0]=0 : elife[1]=0 : elife[2]=0 : elife[3]=0
    
+   ; Clear Blue Fighters (separate pool)
+   bflife[0]=0 : bflife[1]=0
+   
    gosub init_stars
    
    ; Initial UI draw (force first render)
@@ -553,6 +568,9 @@ ready_done
    
    ; ---- Boss Update (Level 6) ----
    if current_level = 6 then gosub update_boss
+   
+   ; ---- Blue Fighter Update ----
+   gosub update_blue_fighters
 
    ; ---- Collisions ----
    gosub check_collisions
@@ -569,9 +587,14 @@ skip_enemy_updates
    ; ---- Boundaries (REMOVED - World Wraps) ----
    ; if px > 150 then px = 150 ...
 
+   ; Blue Fighter spawn chance (temporary high rate for testing)
+   temp_v = rand
+   if temp_v < 25 then gosub spawn_blue_fighter
+   
    ; ---- Camera Update ----
 
    gosub update_render_coords
+   gosub update_bf_render_coords
 
     ; ---- Draw ----
     ; Draw Scores
@@ -615,6 +638,7 @@ skip_enemy_updates
     gosub draw_stars
     gosub draw_player_bullets
     gosub draw_enemies
+    gosub draw_blue_fighters
      if alife > 0 then gosub draw_asteroid
      if current_level = 6 then gosub draw_boss
      if current_level = 6 then gosub draw_boss_indicator
@@ -1750,6 +1774,22 @@ check_wrap_x_e
 next_shift_x_e
    next
    
+   ; Blue Fighters (separate pool)
+   for iter = 0 to 1
+      if bflife[iter] = 0 then goto next_shift_x_bf
+      temp_v = bfx[iter]
+      bfx[iter] = bfx[iter] - temp_bx
+      if temp_bx >= 128 then goto shift_add_x_bf
+      if bfx[iter] > temp_v then bfx_hi[iter] = bfx_hi[iter] - 1
+      goto check_wrap_x_bf
+shift_add_x_bf
+      if bfx[iter] < temp_v then bfx_hi[iter] = bfx_hi[iter] + 1
+check_wrap_x_bf
+      if bfx_hi[iter] = 255 then bfx_hi[iter] = 1
+      if bfx_hi[iter] >= 2 then bfx_hi[iter] = 0
+next_shift_x_bf
+   next
+   
    ; Asteroid
    if alife = 0 then goto skip_shift_x_a
       temp_v = ax
@@ -1816,6 +1856,21 @@ check_wrap_y_e
       if ey_hi[iter] >= 2 then ey_hi[iter] = 0
 next_shift_y_e
    next
+   
+   ; Blue Fighters (separate pool)
+   for iter = 0 to 1
+      if bflife[iter] = 0 then goto next_shift_y_bf
+      temp_v = bfy[iter]
+      bfy[iter] = bfy[iter] - temp_by
+      if temp_by >= 128 then goto shift_add_y_bf
+      if bfy[iter] > temp_v then bfy_hi[iter] = bfy_hi[iter] - 1
+      goto check_wrap_y_bf
+shift_add_y_bf
+      if bfy[iter] < temp_v then bfy_hi[iter] = bfy_hi[iter] + 1
+check_wrap_y_bf
+      if bfy_hi[iter] = 255 then bfy_hi[iter] = 1
+      if bfy_hi[iter] >= 2 then bfy_hi[iter] = 0
+next_shift_y_bf
    
    ; Asteroid
    if alife = 0 then goto skip_shift_y_a
@@ -3052,3 +3107,114 @@ Song_Boss_Data:
    incbin "music/Boss_30hz.bin"
 end
 
+spawn_blue_fighter
+   ; Find free Blue Fighter slot
+   for iter = 0 to 1
+      if bflife[iter] = 0 then goto do_spawn_bf
+   next
+   return
+   
+do_spawn_bf
+   ; Spawn Blue Fighter
+   bflife[iter] = 1
+   
+   ; Set High Byte to zone 1,1 using standard enemy numbering (hi=1 for center)
+   bfx_hi[iter] = 1
+   bfy_hi[iter] = 1
+   
+   ; Randomize spawn side (left or right edge)
+   temp_v = rand
+   if temp_v < 128 then goto bf_spawn_left
+   
+bf_spawn_right
+   bfx[iter] = 160
+   goto bf_spawn_y
+   
+bf_spawn_left
+   bfx[iter] = 0
+   
+bf_spawn_y
+   ; Random Y position
+   bfy[iter] = rand
+   bfby[iter] = bfy[iter]  ; Set base Y for wave motion
+   return
+update_blue_fighters
+   ; Update both Blue Fighters (separate pool)
+   ; SIMPLIFIED: Just diagonal movement for debugging scrolling
+   for iter = 0 to 1
+      if bflife[iter] = 0 then goto next_bf
+      
+      ; Horizontal Movement (right, 0.5 px/frame)
+      if (frame & 1) = 0 then bfx[iter] = bfx[iter] + 1
+      if bfx[iter] = 0 then bfx_hi[iter] = bfx_hi[iter] + 1
+      
+      ; Wrap World X (zones 0↔1, matching standard enemies)
+      if bfx_hi[iter] = 255 then bfx_hi[iter] = 1
+      if bfx_hi[iter] >= 2 then bfx_hi[iter] = 0
+      
+      ; Vertical Movement (down, 0.25 px/frame)
+      if (frame & 3) = 0 then bfy[iter] = bfy[iter] + 1
+      if bfy[iter] = 0 then bfy_hi[iter] = bfy_hi[iter] + 1
+      
+      ; Wrap World Y (zones 0↔1, matching standard enemies)
+      if bfy_hi[iter] = 255 then bfy_hi[iter] = 1
+      if bfy_hi[iter] >= 2 then bfy_hi[iter] = 0
+      
+next_bf
+   next
+   return
+update_bf_render_coords
+   ; Calculate screen coordinates for Blue Fighters (same logic as enemies)
+   for iter = 0 to 1
+      if bflife[iter] = 0 then bf_on[iter] = 0 : goto next_bf_render
+      
+      ; --- X Axis --- Zone map: (0,0)(1,0) top, (0,1)(1,1) bottom
+      if bfx_hi[iter] = 1 then goto bf_check_x_center
+      if bfx_hi[iter] = 0 then goto bf_check_x_left
+      bf_on[iter] = 0 : goto next_bf_render
+
+bf_check_x_center
+      ; Hi=1 (Zone 1,y): Center/Right - visible 0 <= x < 160
+      bfx_scr[iter] = bfx[iter]
+      if bfx_scr[iter] >= 160 then bf_on[iter] = 0 : goto next_bf_render
+      goto bf_x_ok
+
+bf_check_x_left
+      ; Hi=0 (Zone 0,y): Left - visible 247 < x <= 255
+      bfx_scr[iter] = bfx[iter]
+      if bfx_scr[iter] <= 247 then bf_on[iter] = 0 : goto next_bf_render
+      if bfx_scr[iter] = 0 then bf_on[iter] = 0 : goto next_bf_render
+
+bf_x_ok
+      ; --- Y Axis ---
+      if bfy_hi[iter] = 1 then goto bf_check_y_bottom
+      if bfy_hi[iter] = 0 then goto bf_check_y_top
+      bf_on[iter] = 0 : goto next_bf_render
+
+bf_check_y_bottom
+      ; Hi=1 (Zone x,1): Bottom - visible 0 <= y < 192
+      bfy_scr[iter] = bfy[iter]
+      if bfy_scr[iter] >= 192 then bf_on[iter] = 0 : goto next_bf_render
+      goto bf_y_ok
+
+bf_check_y_top
+      ; Hi=0 (Zone x,0): Top - visible 247 < y <= 255
+      bfy_scr[iter] = bfy[iter]
+      if bfy_scr[iter] <= 247 then bf_on[iter] = 0 : goto next_bf_render
+      if bfy_scr[iter] = 0 then bf_on[iter] = 0 : goto next_bf_render
+
+bf_y_ok
+      bf_on[iter] = 1
+next_bf_render
+   next
+   return
+draw_blue_fighters
+   ; Draw Blue Fighters (separate pool)
+   for iter = 0 to 1
+      if bf_on[iter] = 0 then goto next_draw_bf
+      temp_v = bfx_scr[iter]
+      temp_w = bfy_scr[iter]
+      plotsprite blue_fighter 3 temp_v temp_w
+next_draw_bf
+   next
+   return
