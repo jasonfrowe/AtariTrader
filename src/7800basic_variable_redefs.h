@@ -195,6 +195,10 @@ bul_x3 = var21
 bul_x2 = var20 
 bul_x1 = var19 
 bul_x0 = var18 
+bfy_acc = $25EC
+ 
+bfx_acc = $25EA
+ 
 bf_on = $25E8
  
 bfy_scr = $25E6

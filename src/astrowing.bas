@@ -202,6 +202,8 @@
    dim bfx_scr = $25E4  ; 25E4-25E5 - Blue Fighter Screen X (cached)
    dim bfy_scr = $25E6  ; 25E6-25E7 - Blue Fighter Screen Y (cached)
    dim bf_on = $25E8    ; 25E8-25E9 - Blue Fighter Visible Flag
+   dim bfx_acc = $25EA  ; 25EA-25EB - Blue Fighter X Acc
+   dim bfy_acc = $25EC  ; 25EC-25ED - Blue Fighter Y Acc
    
    ; Aliases for plotsprite usage
    dim bul_x0 = var18 : dim bul_x1 = var19 : dim bul_x2 = var20 : dim bul_x3 = var21
@@ -3139,26 +3141,77 @@ bf_spawn_left
    
 bf_spawn_y
    ; Random Y position
-   bfy[iter] = rand
-   bfby[iter] = bfy[iter]  ; Set base Y for wave motion
-   return
 update_blue_fighters
    ; Update both Blue Fighters (runs BEFORE shift_universe)
    ; Uses proper overflow detection: if new < old, then wrapped
    for iter = 0 to 1
       if bflife[iter] = 0 then goto next_bf
       
-      ; Horizontal Movement (right, 0.5 px/frame)
-      if (frame & 1) = 0 then temp_v = bfx[iter] : bfx[iter] = bfx[iter] + 1 : if bfx[iter] < temp_v then bfx_hi[iter] = bfx_hi[iter] + 1 : if bfx_hi[iter] >= 2 then bfx_hi[iter] = 0
+      ; --- Horizontal Movement (Accumulator linear 0.5px/frame) ---
+      temp_v = bfx_acc[iter]
+      bfx_acc[iter] = bfx_acc[iter] + 128
+      if bfx_acc[iter] < temp_v then goto bf_move_x_pixel
+      goto bf_move_x_done
       
-      ; Vertical Movement (down, 0.25 px/frame)
-      if (frame & 3) = 0 then temp_v = bfy[iter] : bfy[iter] = bfy[iter] + 1 : if bfy[iter] < temp_v then bfy_hi[iter] = bfy_hi[iter] + 1 : if bfy_hi[iter] >= 2 then bfy_hi[iter] = 0
+bf_move_x_pixel
+      temp_v = bfx[iter] 
+      bfx[iter] = bfx[iter] + 1 
+      if bfx[iter] < temp_v then bfx_hi[iter] = bfx_hi[iter] + 1 
+      if bfx_hi[iter] >= 2 then bfx_hi[iter] = 0
+bf_move_x_done
+
+      ; --- Vertical Oscillation (Sine Velocity + Accumulator) ---
+      ; 1. Calculate Phase (Period ~64 frames)
+      temp_v = (frame + (iter * 64)) / 4
+      temp_v = temp_v & 15    ; Mask 0-15
       
+      ; 2. Get Velocity from Table
+      temp_acc = sin_table[temp_v] ; Signed value (max 4, min -4/252)
+      
+      ; 3. Scale Velocity (x16) for Accumulator
+      ;    Max 4*16 = 64 subpixels/frame (0.25 px/frame)
+      temp_w = temp_acc * 16
+      
+      ; 4. Add to Accumulator
+      temp_v = bfy_acc[iter] ; Old Acc
+      bfy_acc[iter] = bfy_acc[iter] + temp_w
+      
+      ; 5. Apply Pixel Change based on Sign and Carry
+      if temp_acc >= 128 then goto bf_osc_neg
+      
+bf_osc_pos
+      ; Positive Velocity: If Acc wrapped (new < old), we carried +1
+      if bfy_acc[iter] < temp_v then goto bf_pixel_down 
+      goto bf_osc_done
+
+bf_osc_neg
+      ; Negative Velocity: High byte is -1 ($FF). 
+      ; If Acc wrapped (new < old), we carried +1. Total -1+1=0 (No pixel change).
+      ; If Acc did NOT wrap, High byte stays -1. Total -1 (Pixel up).
+      if bfy_acc[iter] < temp_v then goto bf_osc_done
+      goto bf_pixel_up
+
+bf_pixel_down
+      temp_v = bfy[iter]
+      bfy[iter] = bfy[iter] + 1
+      if bfy[iter] < temp_v then bfy_hi[iter] = bfy_hi[iter] + 1
+      if bfy_hi[iter] >= 2 then bfy_hi[iter] = 0
+      goto bf_osc_done
+
+bf_pixel_up
+      temp_v = bfy[iter]
+      bfy[iter] = bfy[iter] - 1
+      if bfy[iter] > temp_v then bfy_hi[iter] = bfy_hi[iter] - 1
+      if bfy_hi[iter] = 255 then bfy_hi[iter] = 1
+
+bf_osc_done
+
 next_bf
    next
    return
+
 update_bf_render_coords
-   ; Calculate screen coordinates for Blue Fighters (same logic as enemies)
+   ; Calculate screen coordinates based on 4-zone map: (0,0),(1,0),(0,1),(1,1)
    for iter = 0 to 1
       if bflife[iter] = 0 then bf_on[iter] = 0 : goto next_bf_render
       
