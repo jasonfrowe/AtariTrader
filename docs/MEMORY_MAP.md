@@ -141,6 +141,12 @@ Variables manually allocated to the upper RAM block using `dim var = $Address`.
 | `$25E8-25E9` | `bf_on` | Blue Fighter Visible | Array [2] |
 | `$25EA-25EB` | `bfx_acc` | Blue Fighter X Acc | Array [2] |
 | `$25EC-25ED` | `bfy_acc` | Blue Fighter Y Acc | Array [2] |
+| `$25EE` | `bf_bul_x` | Blue Fighter Bul X | |
+| `$25EF` | `bf_bul_y` | Blue Fighter Bul Y | |
+| `$25F0` | `bf_bul_vx` | Blue Fighter Bul VX | |
+| `$25F1` | `bf_bul_vy` | Blue Fighter Bul VY | |
+| `$25F2` | `bf_bul_life` | Blue Fighter Bul Life | |
+| `$25F3-25FF` | (Reserved) | | |
 
 ---
 

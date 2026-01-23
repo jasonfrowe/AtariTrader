@@ -198,12 +198,19 @@
    dim bflife = $25DC   ; 25DC-25DD - Blue Fighter Life (0=dead, 1=alive)
    dim bfx_hi = $25DE   ; 25DE-25DF - Blue Fighter X (High)
    dim bfy_hi = $25E0   ; 25E0-25E1 - Blue Fighter Y (High)
-   dim bfby = $25E2     ; 25E2-25E3 - Blue Fighter Base Y (wave motion)
-   dim bfx_scr = $25E4  ; 25E4-25E5 - Blue Fighter Screen X (cached)
-   dim bfy_scr = $25E6  ; 25E6-25E7 - Blue Fighter Screen Y (cached)
-   dim bf_on = $25E8    ; 25E8-25E9 - Blue Fighter Visible Flag
-   dim bfx_acc = $25EA  ; 25EA-25EB - Blue Fighter X Acc
-   dim bfy_acc = $25EC  ; 25EC-25ED - Blue Fighter Y Acc
+   dim bfby   = $25E2   ; 25E2-25E3 - Base Y for oscillation
+   dim bfx_scr = $25E4  ; 25E4-25E5 - Screen X
+   dim bfy_scr = $25E6  ; 25E6-25E7 - Screen Y
+   dim bf_on   = $25E8  ; 25E8-25E9 - Visible flag
+   dim bfx_acc = $25EA  ; 25EA-25EB - Acc X
+   dim bfy_acc = $25EC  ; 25EC-25ED - Acc Y
+   
+   ; Blue Fighter Bullet (Single Shared Bullet)
+   dim bf_bul_x = $25EE
+   dim bf_bul_y = $25EF
+   dim bf_bul_vx = $25F0
+   dim bf_bul_vy = $25F1
+   dim bf_bul_life = $25F2
    
    ; Aliases for plotsprite usage
    dim bul_x0 = var18 : dim bul_x1 = var19 : dim bul_x2 = var20 : dim bul_x3 = var21
@@ -460,6 +467,8 @@ init_game
    
    ; Clear Blue Fighters (separate pool)
    bflife[0]=0 : bflife[1]=0
+   bf_bul_life = 0
+
    
    gosub init_stars
    
@@ -576,6 +585,9 @@ ready_done
    if current_level = 6 then gosub update_boss
    
    ; Blue Fighter update now runs BEFORE shift_universe (see above)
+   
+   ; ---- BF Bullet Update ----
+   gosub update_bf_bullet
 
    ; ---- Collisions ----
    gosub check_collisions
@@ -644,6 +656,8 @@ skip_enemy_updates
     gosub draw_player_bullets
     gosub draw_enemies
     gosub draw_blue_fighters
+    gosub draw_bf_bullet
+
      if alife > 0 then gosub draw_asteroid
      if current_level = 6 then gosub draw_boss
      if current_level = 6 then gosub draw_boss_indicator
@@ -1312,6 +1326,28 @@ skip_bul_bf
 skip_bullet_coll
    next
    
+   ; 1c. Player vs Blue Fighter Bullet
+   if bf_bul_life = 0 then goto skip_bf_bul_coll
+   
+   temp_v = px_scr - bf_bul_x
+   temp_v = temp_v + 7
+   if temp_v >= 128 then temp_v = 0 - temp_v
+   if temp_v >= 8 then goto skip_bf_bul_coll
+   
+   temp_v = py_scr - bf_bul_y
+   temp_v = temp_v + 7
+   if temp_v >= 128 then temp_v = 0 - temp_v
+   if temp_v >= 8 then goto skip_bf_bul_coll
+   
+   ; Hit Player
+   bf_bul_life = 0
+   playsfx sfx_damage 0
+   temp_v = 1
+   if player_shield < temp_v then player_shield = 0 else player_shield = player_shield - temp_v
+   if player_shield <= 0 then goto coll_done
+
+skip_bf_bul_coll
+
    ; 2. Player vs Enemies
    for iter = 0 to 3
       if e_on[iter] = 0 then goto skip_p_e
@@ -1900,6 +1936,10 @@ skip_shift_x_boss
       if eblife[iter] > 0 then ebul_x[iter] = ebul_x[iter] - temp_bx
    next
 
+   ; Blue Fighter Bullet (Shift with world)
+   if bf_bul_life > 0 then bf_bul_x = bf_bul_x - temp_bx
+
+
    ; Stars (Screen Wrap 0-160)
    ; FIX: Loop only 0-3 (4 stars) to match array size and prevent var84+ corruption
    for iter = 0 to 3
@@ -1982,6 +2022,10 @@ skip_shift_y_boss
    for iter = 0 to 3
       if eblife[iter] > 0 then ebul_y[iter] = ebul_y[iter] - temp_by
    next
+   
+   ; Blue Fighter Bullet (Shift with world)
+   if bf_bul_life > 0 then bf_bul_y = bf_bul_y - temp_by
+
    
    ; Stars (Screen Wrap 0-192)
    for iter = 0 to 3
@@ -2890,7 +2934,9 @@ restart_level_common
       blife[iter] = 0
       eblife[iter] = 0
    next
+   bf_bul_life = 0
    alife = 0
+
    ; Force asteroid to safe off-screen position (Page 0, Center)
    ax = 128 : ax_hi = 0
    ay = 128 : ay_hi = 0
@@ -3210,6 +3256,18 @@ update_blue_fighters
       if bflife[iter] = 0 then goto next_bf
       if bflife[iter] > 1 then bflife[iter] = bflife[iter] - 1 : if bflife[iter] = 1 then bflife[iter] = 0 : goto next_bf 
       
+      ; --- Firing Logic ---
+      if bf_bul_life > 0 then goto skip_bf_fire
+      if bfx_hi[iter] <> 1 then goto skip_bf_fire
+      if bfy_hi[iter] <> 1 then goto skip_bf_fire
+      if bfx[iter] > 152 then goto skip_bf_fire
+      if bfy[iter] > 184 then goto skip_bf_fire
+      
+      ; Fire!
+      gosub fire_bf_bullet
+skip_bf_fire
+
+      
       ; --- Horizontal Movement (Accumulator linear 0.75px/frame) ---
       temp_v = bfx_acc[iter]
       bfx_acc[iter] = bfx_acc[iter] + 192
@@ -3338,3 +3396,42 @@ draw_bf_explosion
 next_draw_bf
    next
    return
+
+fire_bf_bullet
+   bf_bul_life = 60
+   
+   bf_bul_x = bfx[iter] + 4
+   bf_bul_y = bfy[iter] + 4
+   
+   if px_scr > bfx[iter] then bf_bul_vx = 4 else bf_bul_vx = 252 ; +4 or -4
+   if py_scr > bfy[iter] then bf_bul_vy = 4 else bf_bul_vy = 252 ; +4 or -4
+   
+   playsfx sfx_enemyfire 0
+   return
+
+update_bf_bullet
+   if bf_bul_life = 0 then return
+   
+   bf_bul_life = bf_bul_life - 1
+   
+   ; X Movement
+   temp_v = bf_bul_vx
+   bf_bul_x = bf_bul_x + temp_v
+   
+   ; Bounds Check X
+   if bf_bul_x > 165 then if bf_bul_x < 240 then bf_bul_life = 0
+   
+   ; Y Movement
+   temp_v = bf_bul_vy
+   bf_bul_y = bf_bul_y + temp_v
+   
+   ; Bounds Check Y
+   if bf_bul_y > 195 then if bf_bul_y < 240 then bf_bul_life = 0
+   
+   return
+
+draw_bf_bullet
+   if bf_bul_life = 0 then return
+   plotsprite bullet_conv 6 bf_bul_x bf_bul_y
+   return
+
