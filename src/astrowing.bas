@@ -28,7 +28,7 @@
    incgraphic graphics/sprite_spaceship16.png
    
    incgraphic graphics/bullet_conv.png
-   incgraphic graphics/fighter_conv.png
+   incgraphic graphics/fighter.png
    incgraphic graphics/blue_fighter.png
    ; Explosion Frames (Split for animation)
    incgraphic graphics/fighter_explode_00_conv.png
@@ -1275,18 +1275,17 @@ check_collisions
          if e_on[temp_acc] = 0 then goto skip_enemy_coll
          if elife[temp_acc] <> 1 then goto skip_enemy_coll
          
-         ; Check X Collision (Screen Space)
-         ; Bullet (4) vs Fighter (16). Center bullet (+6)
+         ; Bullet (4) vs Fighter (8x8, 6x6 visual). Center bullet (+2), Fighter (+4)
          temp_w = ex_scr[temp_acc]
          temp_v = bul_x[iter] - temp_w
-         temp_v = temp_v - 6 ; Center Offset
+         temp_v = temp_v - 2 ; Center Offset (Delta Center: Bul+2 - Enemy+4 = -2)
          if temp_v >= 128 then temp_v = 0 - temp_v
-         if temp_v >= 10 then goto skip_enemy_coll ; Half Fighter Width + Bullet
+         if temp_v >= 10 then goto skip_enemy_coll ; Threshold 7 (Easier)
          
          ; Check Y Collision
          temp_w = ey_scr[temp_acc]
          temp_v = bul_y[iter] - temp_w
-         temp_v = temp_v - 6 ; Center Offset
+         temp_v = temp_v - 2 ; Center Offset
          if temp_v >= 128 then temp_v = 0 - temp_v
          if temp_v >= 10 then goto skip_enemy_coll
          
@@ -2250,7 +2249,7 @@ draw_enemies
       temp_v = ex_scr[iter]
       temp_w = ey_scr[iter]
       if elife[iter] > 1 then goto draw_explosion
-      plotsprite fighter_conv 3 temp_v temp_w
+      plotsprite fighter 3 temp_v temp_w
       goto skip_draw_enemy
 
 draw_explosion
