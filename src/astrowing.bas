@@ -1614,21 +1614,28 @@ skip_ebul_coll
    if boss_state = 0 then goto coll_done
    if boss_on = 0 then goto coll_done
    
+   ; Define Dynamic Hitbox based on Level
+   if current_level = 1 || current_level = 3 then temp_bx = 8 : temp_by = 8 : temp_w = 6 : temp_acc = 6
+   if current_level = 2 || current_level = 4 then temp_bx = 16 : temp_by = 8 : temp_w = 12 : temp_acc = 6
+   if current_level >= 5 then temp_bx = 16 : temp_by = 16 : temp_w = 12 : temp_acc = 12
+   
    ; 1. Bullets vs Boss
    for iter = 0 to 3
       if blife[iter] = 0 then goto skip_bul_boss
       
-      ; X Check (Boss is 32px wide)
+      ; X Check
       temp_v = bul_x[iter] - boss_scr_x
-      temp_v = temp_v - 16 ; Center boss offset (Width 32 / 2)
+      temp_v = temp_v - temp_bx ; Center Offset X
       if temp_v >= 128 then temp_v = 0 - temp_v
-      if temp_v >= 16 then goto skip_bul_boss ; Half boss width + bullet
+      if temp_v >= temp_w then goto skip_bul_boss ; Width Threshold
       
-      ; Y Check (Boss is 32px tall)
+      ; Y Check
       temp_v = bul_y[iter] - boss_scr_y
-      temp_v = temp_v - 16 ; Center boss offset (Height 32 / 2)
+      temp_v = temp_v - temp_by ; Center Offset Y
       if temp_v >= 128 then temp_v = 0 - temp_v
-      if temp_v >= 16 then goto skip_bul_boss ; Half boss height (16) + bullet
+      if temp_v >= temp_acc then goto skip_bul_boss ; Height Threshold
+      
+
       
       ; Hit!
        blife[iter] = 0
@@ -1665,17 +1672,20 @@ skip_bul_boss
    
    ; X Check - distance from player center to boss center
    temp_v = px_scr + 8 ; Player center X
-   temp_w = boss_scr_x + 16 ; Boss center X
-   temp_v = temp_v - temp_w
+   var92 = boss_scr_x + temp_bx ; Boss center X (Use var92 to preserve temp_w)
+   temp_v = temp_v - var92
    if temp_v >= 128 then temp_v = 0 - temp_v
-   if temp_v >= 24 then goto coll_done ; No X overlap
+   ; Radius check: Player(8) + Boss Threshold(temp_w)
+   var90 = 8 + temp_w 
+   if temp_v >= var90 then goto coll_done ; No X overlap
    
    ; Y Check - distance from player center to boss center
    temp_v = py_scr + 8 ; Player center Y
-   temp_w = boss_scr_y + 16 ; Boss center Y
-   temp_v = temp_v - temp_w
+   var92 = boss_scr_y + temp_by ; Boss center Y (Use var92 to preserve temp_acc)
+   temp_v = temp_v - var92
    if temp_v >= 128 then temp_v = 0 - temp_v
-   if temp_v >= 24 then goto coll_done ; No Y overlap (8+16=24)
+   var90 = 8 + temp_acc ; Player Radius(8) + Boss Threshold Y(temp_acc)
+   if temp_v >= var90 then goto coll_done ; No Y overlap
    
    ; Hit Player - Heavy Damage
    playsfx sfx_damage 0
@@ -2318,9 +2328,13 @@ draw_boss
    ; Mini-Boss Rendering (Levels 1-4)
    ; L1=01, L2=02, L3=03, L4=04
    if current_level = 1 then plotsprite BossV2_01 6 boss_scr_x boss_scr_y
-   if current_level = 2 then plotsprite BossV2_02 6 boss_scr_x boss_scr_y
+   if current_level = 2 then plotsprite BossV2_01 6 boss_scr_x boss_scr_y
+   if current_level = 2 then temp_v = boss_scr_x + 16 : plotsprite BossV2_02 6 temp_v boss_scr_y
+   
    if current_level = 3 then plotsprite BossV2_03 6 boss_scr_x boss_scr_y
-   if current_level = 4 then plotsprite BossV2_04 6 boss_scr_x boss_scr_y
+   
+   if current_level = 4 then plotsprite BossV2_03 6 boss_scr_x boss_scr_y
+   if current_level = 4 then temp_v = boss_scr_x + 16 : plotsprite BossV2_04 6 temp_v boss_scr_y
    return
 
 draw_boss_composite
