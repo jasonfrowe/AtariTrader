@@ -78,7 +78,7 @@ Variables manually allocated to the upper RAM block using `dim var = $Address`.
 | `$2557` | `fighters_bcd` | Fighters Remaining (BCD) | |
 | `$2558` | `game_difficulty` | Difficulty Setting | 0=Pro, 1=Easy |
 | `$2559` | `asteroid_timer` | Asteroid Despawn Timer | |
-| `$255A` | `boss_asteroid_cooldown`| Boss throw cooldown | |
+| `$255A` | `boss_asteroid_cooldown`, `boss_attack_timer`| Boss throw/fire cooldown | |
 | `$255B` | `ast_acc_x` | Asteroid Accumulator X | |
 | `$255C` | `ast_acc_y` | Asteroid Accumulator Y | |
 | `$255D-255F` | (Reserved) | | |

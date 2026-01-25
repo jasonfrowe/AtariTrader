@@ -235,6 +235,8 @@ ast_acc_y = $255C
  
 ast_acc_x = $255B
  
+boss_attack_timer = $255A
+ 
 boss_asteroid_cooldown = $255A
  
 asteroid_timer = $2559

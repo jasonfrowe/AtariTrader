@@ -194,6 +194,7 @@
    dim ay_hi = $2556
    dim asteroid_timer = $2559  ; 4-second despawn timer (Safe address)
    dim boss_asteroid_cooldown = $255A ; Cooldown for boss asteroid throws (Safe address)
+   dim boss_attack_timer = $255A      ; Shared timer for boss attacks
    dim ast_acc_x = $255B ; Asteroid sub-pixel accumulator X
    dim ast_acc_y = $255C ; Asteroid sub-pixel accumulator Y
    
@@ -2528,6 +2529,11 @@ init_boss_teleport
    
    boss_on = 0  ; Calculated by update_render_coords
    
+    ; Clear Enemy Bullets (used by boss)
+    for iter = 0 to 3
+       eblife[iter] = 0
+    next
+   
    ; Set Boss Palette (P6)
    P6C1 = $46 ; Red
    P6C2 = $96 ; Blue
@@ -2797,6 +2803,8 @@ do_spawn_boss_fighter
 boss_special_attack
    if boss_on = 0 then return
    
+   if current_level < 6 then goto boss_fire_bullet
+   
    ; Level 6: Asteroids
    if current_level = 6 then goto boss_throw_asteroid
    
@@ -2884,6 +2892,74 @@ throw_done
    boss_asteroid_cooldown = 120 ; 2 second cooldown
    return
 
+
+boss_fire_bullet
+   ; Boss fires enemy bullets at player
+   ; Reuse Enemy Bullet System (ebul_x, ebul_y, ebul_vx, ebul_vy, eblife)
+   
+   ; 1. Find Free Slot
+   for iter = 0 to 3
+      if eblife[iter] = 0 then goto spawn_boss_bullet
+   next
+   return
+
+spawn_boss_bullet
+   ; iter = bullet index
+   
+   ; 2. Spawn at Boss Center (Variable by Level)
+   boss_attack_timer = 40 ; Default Cooldown (Slower than L1)
+   
+   eblife[iter] = 120 ; Lifetime
+   
+   ; Calculate Center Offset based on Boss Size
+   temp_bx = 8 : temp_by = 8 ; Default L1/L3 (16x16) center (+8, +8)
+   
+   if current_level = 2 || current_level = 4 then temp_bx = 16 : temp_by = 8 ; 32x16 center (+16, +8)
+   if current_level >= 5 then temp_bx = 16 : temp_by = 16 ; 32x32 center (+16, +16)
+   
+   ; Coordinates (Screen Space)
+   temp_v = boss_scr_x + temp_bx
+   ebul_x[iter] = temp_v
+   
+   temp_w = boss_scr_y + temp_by
+   ebul_y[iter] = temp_w
+   
+   ; 3. Aim at Player (px_scr, py_scr)
+   
+   ; Delta X
+   temp_bx = px_scr + 8 ; Player Center X
+   temp_bx = temp_bx - temp_v ; Delta X
+   
+   if temp_bx >= 128 then ebul_vx[iter] = 252 : temp_bx = 0 - temp_bx else ebul_vx[iter] = 4
+   
+   ; Delta Y
+   temp_by = py_scr + 8 ; Player Center Y
+   temp_by = temp_by - temp_w ; Delta Y
+   
+   if temp_by >= 128 then ebul_vy[iter] = 252 : temp_by = 0 - temp_by else ebul_vy[iter] = 4
+   
+   ; 8-way adjustment
+   temp_v = temp_bx / 2
+   if temp_v > temp_by then ebul_vy[iter] = 0
+   
+   temp_v = temp_by / 2
+   if temp_v > temp_bx then ebul_vx[iter] = 0
+   
+   ; 4. Set Cooldown based on Level (One Level Less than Player)
+   ; Player: L1=25, L2-4=15, L5=8
+   ; Boss:
+   ; L1 -> Slower (40)
+   ; L2 -> Player L1 (25)
+   ; L3-4 -> Player L2 (15)
+   ; L5 -> Player L4 (15)
+   
+   boss_attack_timer = 40
+   if current_level = 2 then boss_attack_timer = 25
+   if current_level >= 3 then boss_attack_timer = 15
+   
+   ; Sound
+   playsfx sfx_enemyfire 0
+   return
 
 level_complete
    ; All fighters destroyed - level won!
