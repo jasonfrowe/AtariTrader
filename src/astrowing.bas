@@ -48,7 +48,10 @@
    
    incgraphic graphics/asteroid_M_conv.png
    ; incgraphic graphics/Boss_conv.png
-   incgraphic graphics/Boss_v2.png
+   incgraphic graphics/BossV2_01.png
+   incgraphic graphics/BossV2_02.png
+   incgraphic graphics/BossV2_03.png
+   incgraphic graphics/BossV2_04.png
    
    ; Define custom mapping for scoredigits (0-9 + A-F)
    incgraphic graphics/unified_font.png 160A 0 1 2 3
@@ -411,7 +414,7 @@ init_game
     player_lives = 3  ; Start with 3 lives (display will show 2 hearts = 2 extra lives)
     
     ; Initialize Level
-    current_level = 1
+    current_level = 6
     boss_checkpoint = 0 ; Reset Health Gate
     
     ; Initialize UI cache (Bug Fix #3)
@@ -2291,7 +2294,23 @@ draw_asteroid
 
 draw_boss
    if boss_on = 0 then return
-   plotsprite Boss_v2 6 boss_scr_x boss_scr_y
+   
+   ; Top Left
+   plotsprite BossV2_01 6 boss_scr_x boss_scr_y
+   
+   ; Top Right
+   temp_v = boss_scr_x
+   temp_v = temp_v + 16
+   plotsprite BossV2_02 6 temp_v boss_scr_y
+   
+   ; Bottom Left
+   temp_w = boss_scr_y
+   temp_w = temp_w + 16
+   plotsprite BossV2_03 6 boss_scr_x temp_w
+   
+   ; Bottom Right
+   plotsprite BossV2_04 6 temp_v temp_w
+   
    return
 
 draw_boss_indicator
@@ -2459,14 +2478,14 @@ update_boss
    ; 1. Base Oscillation (Default State)
    ; Determine closest edge to find oscillation axis
    temp_v = boss_scr_y ; Min Y dist (Top)
-   if boss_scr_y > 192 then temp_v = 256 - boss_scr_y
+   if boss_scr_y > 192 then temp_v = 0 - boss_scr_y
    
    temp_w = 192 - boss_scr_y ; Bottom
    if boss_scr_y > 192 then temp_w = 0
    if temp_w < temp_v then temp_v = temp_w ; temp_v is Min Y Dist
    
    temp_w = boss_scr_x ; Min X dist (Left)
-   if boss_scr_x > 160 then temp_w = 256 - boss_scr_x
+   if boss_scr_x > 160 then temp_w = 0 - boss_scr_x
    
    var90 = 160 - boss_scr_x ; Right
    if boss_scr_x > 160 then var90 = 0
