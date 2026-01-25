@@ -2494,6 +2494,10 @@ init_boss
    boss_hp = 100                     ; Boss health
    ; Always 100 HP. Difficulty is managed by damage scaling.
    boss_state = 4                    ; Active state (Phase 4..1)
+   
+   ; Switch Music to Boss Theme
+   gosub StopMusic
+   music_ptr_hi = 0 ; Force re-init in PlayMusic
    goto init_boss_teleport
 
 init_boss_checkpoint
@@ -3024,7 +3028,7 @@ restart_level_common
    ; Reset Boss State
    boss_state = 0 
    boss_on = 0
-   boss_checkpoint = 0 ; Reset checkpoint for new encounter
+   ; boss_checkpoint is PRESERVED here to allow retrying boss at 50% HP
    ; Boss HP will be set by init_boss when needed
    
    ; Clear bullets
@@ -3089,6 +3093,7 @@ restart_level_common
 
 init_level
    ; Initialize new level
+   boss_checkpoint = 0 ; Reset checkpoint for new level
    
    ; Set fighters for the new level
    gosub set_level_fighters
@@ -3216,8 +3221,18 @@ PlayMusic
    asm
    ; Check if initialized (high byte != 0)
    lda music_ptr_hi
-   bne .SetupPtr
-      ; Initialize pointer based on current_level and current_song (for rotation)
+    bne .SetupPtr
+    
+    ; Check for Active Boss (State 1-4)
+    lda boss_state
+    cmp #5
+    bcs .CheckLevel ; If State >= 5 (Defeated), ignore boss music
+    cmp #1
+    bcc .CheckLevel ; If State < 1 (Inactive), ignore boss music
+    jmp .UseBoss    ; Else play Boss Music
+
+.CheckLevel:
+    ; Initialize pointer based on current_level and current_song (for rotation)
     lda current_level
     bne .NotTitle
     
