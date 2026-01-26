@@ -1,0 +1,1 @@
+zsh:1: no such file or directory: /Users/rowe/Software/Atari7800/AtariTrader/build/7800basic/7800basic

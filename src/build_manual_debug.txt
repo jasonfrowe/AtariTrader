@@ -1,0 +1,63 @@
+  basic version:  7800basic v0.40 (19:35:18, Nov 4 2025)
+  dasm version:   DASM 2.20.15-SNAPSHOT
+
+Starting build of astrowing_bnk.bas
+7800basic v0.40 Nov  4 2025 19:35:18
+
+*** INFO  bank #2, GFX Block #0 starts @ $A000
+        title_screen_conv00 title_screen_conv01 title_screen_conv02
+        title_screen_conv03 title_screen_conv04 title_screen_conv05
+*** INFO  bank #2, GFX block #0 has 256 bytes left (16 x 16 bytes)
+
+
+*** INFO  bank #2, DMA hole #0 starts @ $B000
+        no code defined for DMA hole
+
+
+*** INFO  bank #4, GFX Block #0 starts @ $A000
+        fighter asteroid_M_conv asteroid_M_conv_tallsprite_00
+        blue_fighter
+*** INFO  bank #4, GFX block #0 has 3904 bytes left (244 x 16 bytes)
+
+
+*** INFO  bank #4, DMA hole #0 starts @ $B000
+        no code defined for DMA hole
+
+
+*** INFO  bank #8, GFX Block #0 starts @ $E000
+        unified_font bullet_conv fighter_explode_00_conv
+        fighter_explode_01_conv fighter_explode_02_conv
+        fighter_explode_03_conv fighter_explode_04_conv
+        fighter_explode_05_conv fighter_explode_06_conv
+        fighter_explode_07_conv sprite_spaceship1 sprite_spaceship2
+        sprite_spaceship3 sprite_spaceship4 sprite_spaceship5
+        sprite_spaceship6 sprite_spaceship7 sprite_spaceship8
+        sprite_spaceship9 sprite_spaceship10 sprite_spaceship11
+        sprite_spaceship12 sprite_spaceship13 sprite_spaceship14
+        sprite_spaceship15 sprite_spaceship16
+*** INFO  bank #8, GFX block #0 has 1136 bytes left (71 x 16 bytes)
+
+
+7800basic compilation complete.
+User-defined 7800.asm found in current directory
+
+   stack allowance: 14 nested subroutines.
+   the canary is situated at: $1d2
+   16158 bytes of ROM space left in the main area of bank 1.
+   5541 bytes of ROM space left in the main area of bank 2.
+   6302 bytes of ROM space left in the main area of bank 4.
+   6208 bytes of ROM space left in the main area of bank 8.
+   (pokeysound module is using  60  bytes of rom)
+     $1880 to $1fff used as zone memory, allowing 31 display objects per zone.
+     2442 bytes left in the 7800basic reserved area.
+
+
+Fatal assembly error: Source is not resolvable.
+Cartridge data file must be at least 4K!
+
+7800header 0.21 Nov  4 2025 19:35:24
+*** ERROR: The file size of astrowing_bnk.bas.bin is 0 bytes.
+
+7800makecc2 v0.1
+  *** ERROR: The file size of astrowing_bnk.bas.bin is 0 bytes.
+
