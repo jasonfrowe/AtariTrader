@@ -345,6 +345,9 @@ title_release_wait
     plotchars 'DIFFICULTY' 1 20 9
     if switchleftb then plotchars 'EASY' 5 108 9 else plotchars 'PRO ' 5 108 9
     
+    ; Draw Score
+    plotvalue unified_font 0 score0 6 56 0
+    
     drawscreen
     
     ; Hue Cycle Animation (Safe calculation)
@@ -3354,6 +3357,8 @@ you_win_game
    plotchars 'YOU ARE A HERO' 3 24 6
    plotchars 'THANKS FOR PLAYING' 5 4 8
    plotchars 'PRESS FIRE' 0 40 10
+   
+   plotvalue unified_font 0 score0 6 56 0
 
    ; Flash celebration
    drawscreen
