@@ -1,6 +1,6 @@
    set romsize 48k
    
-   set 7800header 'name Astro Wing Startfighter'
+   set 7800header 'name Astro Wing Starfighter'
 
    ; set hssupport $4157
    set zoneheight 16
